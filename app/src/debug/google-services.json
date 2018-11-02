@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "958995512526",
+    "firebase_url": "https://monkeybook-50779.firebaseio.com",
+    "project_id": "monkeybook-50779",
+    "storage_bucket": "monkeybook-50779.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:958995512526:android:bc2cbac15127d10a",
+        "android_client_info": {
+          "package_name": "com.monke.monkeybook.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "958995512526-lc1ocotntpfhuapi5ir18nlu81ce4fuv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwAmrHEU-U-24yOoNsDNzsdcv9gkncmZ4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
