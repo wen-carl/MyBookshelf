@@ -36,7 +36,7 @@
                 android:layout_height="26dp"
                 android:layout_gravity="center_horizontal|bottom"
                 android:singleLine="true"
-                android:text="@string/tv_book_name"
+                android:text="@string/book_name"
                 android:textColor="@color/tv_text_default"
                 android:textSize="16sp"
                 app:minTextSize="10sp" />
@@ -61,7 +61,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:layout_margin="16dp"
-            android:src="@drawable/ic_delete_forever_black_24dp"
+            android:src="@drawable/ic_clear_all"
             app:tint="@color/tv_text_default" />
 
 

@@ -5,7 +5,14 @@
     <SwitchPreference
         android:defaultValue="false"
         android:key="@string/pk_ImmersionStatusBar"
+        android:summary="@string/status_bar_immersion"
         android:title="@string/immersion_status_bar" />
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="@string/pk_navigationBarColorChange"
+        android:summary="@string/navigation_bar_color_change_s"
+        android:title="@string/navigation_bar_color_change" />
 
     <ListPreference
         android:defaultValue="0"
@@ -13,12 +20,6 @@
         android:entryValues="@array/bookshelf_px_value"
         android:key="@string/pk_bookshelf_px"
         android:title="@string/bookshelf_px" />
-
-    <SwitchPreference
-        android:defaultValue="false"
-        android:key="@string/pk_bookshelf_anim"
-        android:summary="@string/s_bookshelf_anim"
-        android:title="@string/t_bookshelf_anim" />
 
     <SwitchPreference
         android:defaultValue="true"
@@ -36,9 +37,9 @@
         android:defaultValue="false"
         android:key="@string/pk_default_read"
         android:summary="@string/ps_default_read"
-        android:title="@string/pt_default_read"/>
+        android:title="@string/pt_default_read" />
 
-    <com.monke.monkeybook.widget.number.NumberPickerPreference
+    <com.kunfei.bookshelf.widget.number.NumberPickerPreference
         android:defaultValue="6"
         android:key="@string/pk_threads_num"
         android:summary="@string/threads_num"
@@ -47,19 +48,19 @@
         app:MinValue="1" />
 
     <SwitchPreference
-        android:defaultValue="false"
-        android:key="@string/pk_find_expand_group"
-        android:summary="@string/default_expand_first"
-        android:title="@string/auto_expand_find" />
-
-    <SwitchPreference
         android:defaultValue="true"
         android:key="showAllFind"
         android:summary="@string/ps_show_all_find"
-        android:title="@string/pt_show_all_find"/>
+        android:title="@string/pt_show_all_find" />
 
     <Preference
         android:key="@string/pk_download_path"
         android:title="@string/download_path" />
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="upChangeSourceLastChapter"
+        android:summary="@string/up_change_source_last_chapter_s"
+        android:title="@string/up_change_source_last_chapter_t" />
 
 </PreferenceScreen>
