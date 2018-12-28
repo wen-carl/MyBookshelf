@@ -1,7 +1,6 @@
 package com.kunfei.bookshelf.presenter.contract;
 
-import android.support.design.widget.Snackbar;
-
+import com.google.android.material.snackbar.Snackbar;
 import com.kunfei.basemvplib.impl.IPresenter;
 import com.kunfei.basemvplib.impl.IView;
 import com.kunfei.bookshelf.bean.BookSourceBean;
@@ -23,8 +22,6 @@ public interface BookSourceContract {
         void importBookSource(String url);
 
         void importBookSourceLocal(String path);
-
-        void importBookSourceJson(String json);
 
         void checkBookSource();
 

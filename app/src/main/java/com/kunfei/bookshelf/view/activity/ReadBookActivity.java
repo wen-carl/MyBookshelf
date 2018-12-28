@@ -10,10 +10,6 @@ import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.design.widget.AppBarLayout;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -25,8 +21,10 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.google.android.material.appbar.AppBarLayout;
 import com.kunfei.basemvplib.AppActivityManager;
 import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
@@ -41,6 +39,7 @@ import com.kunfei.bookshelf.presenter.contract.ReadBookContract;
 import com.kunfei.bookshelf.service.ReadAloudService;
 import com.kunfei.bookshelf.utils.BatteryUtil;
 import com.kunfei.bookshelf.utils.NetworkUtil;
+import com.kunfei.bookshelf.utils.PermissionUtils;
 import com.kunfei.bookshelf.utils.SystemUtil;
 import com.kunfei.bookshelf.utils.barUtil.BarHide;
 import com.kunfei.bookshelf.utils.barUtil.ImmersionBar;
@@ -55,18 +54,20 @@ import com.kunfei.bookshelf.widget.page.PageLoader;
 import com.kunfei.bookshelf.widget.page.PageView;
 import com.kunfei.bookshelf.widget.page.TxtChapter;
 import com.kunfei.bookshelf.widget.page.animation.PageAnimation;
-import com.monke.mprogressbar.MHorProgressBar;
 
 import java.util.List;
 import java.util.Objects;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.EasyPermissions;
 
 
-
+/**
+ * 阅读界面
+ */
 public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> implements ReadBookContract.View {
 
     @BindView(R.id.fl_content)
@@ -98,7 +99,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
     @BindView(R.id.moreSettingPop)
     MoreSettingPop moreSettingPop;
     @BindView(R.id.hpb_next_page_progress)
-    MHorProgressBar hpbNextPageProgress;
+    ProgressBar hpbNextPageProgress;
 
     private Animation menuTopIn;
     private Animation menuTopOut;
@@ -295,7 +296,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         if (autoPage) {
             hpbNextPageProgress.setVisibility(View.VISIBLE);
             nextPageTime = readBookControl.getClickSensitivity() * 1000;
-            hpbNextPageProgress.setMaxProgress(nextPageTime);
+            hpbNextPageProgress.setMax(nextPageTime);
             mHandler.postDelayed(upHpbNextPage, upHpbInterval);
             mHandler.postDelayed(autoPageRunnable, nextPageTime);
         } else {
@@ -306,7 +307,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
 
     private void upHpbNextPage() {
         nextPageTime = nextPageTime - upHpbInterval;
-        hpbNextPageProgress.setDurProgress(nextPageTime);
+        hpbNextPageProgress.setProgress(nextPageTime);
         mHandler.postDelayed(upHpbNextPage, upHpbInterval);
     }
 
@@ -648,8 +649,8 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
 
                     @Override
                     public void onPageCountChange(int count) {
-                        llMenuBottom.getReadProgress().setMaxProgress(Math.max(0, count - 1));
-                        llMenuBottom.getReadProgress().setDurProgress(0);
+                        llMenuBottom.getReadProgress().setMax(Math.max(0, count - 1));
+                        llMenuBottom.getReadProgress().setProgress(0);
                         // 如果处于错误状态，那么就冻结使用
                         if (mPageLoader.getPageStatus() == TxtChapter.Status.LOADING
                                 || mPageLoader.getPageStatus() == TxtChapter.Status.ERROR) {
@@ -665,7 +666,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
                         mPresenter.getBookShelf().setDurChapterPage(pageIndex);
                         mPresenter.saveProgress();
                         llMenuBottom.getReadProgress().post(
-                                () -> llMenuBottom.getReadProgress().setDurProgress(pageIndex)
+                                () -> llMenuBottom.getReadProgress().setProgress(pageIndex)
                         );
                         if ((ReadAloudService.running)) {
                             if (resetReadAloud && !TextUtils.isEmpty(mPageLoader.getUnReadContent())) {
@@ -1226,12 +1227,22 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
 
     @Override
     public void openBookFromOther() {
-        if (EasyPermissions.hasPermissions(this, MApplication.PerList)) {
-            mPresenter.openBookFromOther(this);
-        } else {
-            EasyPermissions.requestPermissions(this, getString(R.string.open_from_other),
-                    MApplication.RESULT__PERMS, MApplication.PerList);
-        }
+        PermissionUtils.checkMorePermissions(this, MApplication.PerList, new PermissionUtils.PermissionCheckCallBack() {
+            @Override
+            public void onHasPermission() {
+                mPresenter.openBookFromOther(ReadBookActivity.this);
+            }
+
+            @Override
+            public void onUserHasAlreadyTurnedDown(String... permission) {
+                ReadBookActivity.this.toast(R.string.open_from_other);
+            }
+
+            @Override
+            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+                PermissionUtils.requestMorePermissions(ReadBookActivity.this, permission, MApplication.RESULT__PERMS);
+            }
+        });
     }
 
     /**
@@ -1258,20 +1269,26 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         }
     }
 
-    @AfterPermissionGranted(MApplication.RESULT__PERMS)
-    private void onResultOpenOtherPerms() {
-        if (EasyPermissions.hasPermissions(this, MApplication.PerList)) {
-            toast("获取权限成功");
-        } else {
-            toast("未获取到权限");
-        }
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // Forward results to EasyPermissions
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+        PermissionUtils.checkMorePermissions(this, MApplication.PerList, new PermissionUtils.PermissionCheckCallBack() {
+            @Override
+            public void onHasPermission() {
+                mPresenter.openBookFromOther(ReadBookActivity.this);
+            }
+
+            @Override
+            public void onUserHasAlreadyTurnedDown(String... permission) {
+                ReadBookActivity.this.toast("打开外部书籍需获取存储权限");
+            }
+
+            @Override
+            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+                ReadBookActivity.this.toast("打开外部书籍需获取存储权限");
+                PermissionUtils.toAppSetting(ReadBookActivity.this);
+            }
+        });
     }
 
     @Override
@@ -1292,7 +1309,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
                 pageView.invalidate();
             }
         }
-        if (showCheckPermission && mPresenter.getOpen_from() == ReadBookPresenter.OPEN_FROM_OTHER && EasyPermissions.hasPermissions(this, MApplication.PerList)) {
+        if (showCheckPermission && mPresenter.getOpen_from() == ReadBookPresenter.OPEN_FROM_OTHER && PermissionUtils.checkMorePermissions(this, MApplication.PerList).isEmpty()) {
             showCheckPermission = true;
             mPresenter.openBookFromOther(this);
         }

@@ -44,13 +44,13 @@
                 android:background="@color/colorPrimary"
                 android:orientation="vertical">
 
-                <android.support.design.widget.AppBarLayout
+                <com.google.android.material.appbar.AppBarLayout
                     android:id="@+id/appBar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:theme="@style/AppTheme.AppBarOverlay">
 
-                    <android.support.v7.widget.Toolbar
+                    <androidx.appcompat.widget.Toolbar
                         android:id="@+id/toolbar"
                         android:layout_width="match_parent"
                         android:layout_height="?attr/actionBarSize"
@@ -82,7 +82,7 @@
                         android:layout_height="1dp"
                         android:background="@color/btn_bg_press" />
 
-                </android.support.design.widget.AppBarLayout>
+                </com.google.android.material.appbar.AppBarLayout>
 
             </LinearLayout>
 
@@ -119,14 +119,12 @@
 
     </FrameLayout>
 
-    <com.monke.mprogressbar.MHorProgressBar
+    <ProgressBar
         android:id="@+id/hpb_next_page_progress"
         android:layout_width="match_parent"
         android:layout_height="3dp"
         android:layout_gravity="bottom"
         android:visibility="invisible"
-        app:bgdrawable="@color/btn_bg_press"
-        app:cantouch="false"
-        app:fontdrawable="?attr/colorAccent" />
+        style="@android:style/Widget.ProgressBar.Horizontal" />
 
 </FrameLayout>

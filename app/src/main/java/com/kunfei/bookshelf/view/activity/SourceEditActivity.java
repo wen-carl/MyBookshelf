@@ -2,7 +2,6 @@ package com.kunfei.bookshelf.view.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -10,13 +9,6 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.TextInputLayout;
-import android.support.v4.content.FileProvider;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.AppCompatEditText;
-import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -30,6 +22,8 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
 
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.zxing.BarcodeFormat;
@@ -49,18 +43,21 @@ import com.kunfei.bookshelf.presenter.contract.SourceEditContract;
 import com.kunfei.bookshelf.utils.RxUtils;
 import com.kunfei.bookshelf.utils.ScreenUtils;
 import com.kunfei.bookshelf.utils.SoftInputUtil;
-import com.kunfei.bookshelf.utils.StringUtils;
 import com.kunfei.bookshelf.view.popupwindow.KeyboardToolPop;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Hashtable;
 import java.util.List;
 
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.AppCompatEditText;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.SingleOnSubscribe;
@@ -216,20 +213,6 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
             e.printStackTrace();
         }
         activity.startActivityForResult(intent, EDIT_SOURCE);
-    }
-
-    public static void startThis(Context context, BookSourceBean sourceBean) {
-        Intent intent = new Intent(context, SourceEditActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        String key = String.valueOf(System.currentTimeMillis());
-        intent.putExtra("data_key", key);
-        try {
-            BitIntentDataManager.getInstance().putData(key, sourceBean.clone());
-        } catch (CloneNotSupportedException e) {
-            BitIntentDataManager.getInstance().putData(key, sourceBean);
-            e.printStackTrace();
-        }
-        context.startActivity(intent);
     }
 
     @Override
@@ -589,34 +572,29 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_QR && resultCode == RESULT_OK && null != data) {
             String result = data.getStringExtra("result");
-            if (StringUtils.isJSONType(result)) {
-                mPresenter.setText(result);
-            } else {
-                try {
-                    URL url = new URL(result);
-                    BookSourceManager.importSourceFromWww(url)
-                            .subscribe(new SimpleObserver<List<BookSourceBean>>() {
-                                @SuppressLint("DefaultLocale")
-                                @Override
-                                public void onNext(List<BookSourceBean> bookSourceBeans) {
-                                    if (bookSourceBeans.size() > 1) {
-                                        toast(String.format("导入成功%d个书源, 显示第一个", bookSourceBeans.size()));
-                                        setText(bookSourceBeans.get(0));
-                                    } else if (bookSourceBeans.size() == 1) {
-                                        setText(bookSourceBeans.get(0));
-                                    } else {
-                                        toast("未导入");
-                                    }
-                                }
+            Observable<List<BookSourceBean>> observable = BookSourceManager.importSource(result);
+            if (observable != null) {
+                observable.subscribe(new SimpleObserver<List<BookSourceBean>>() {
+                    @SuppressLint("DefaultLocale")
+                    @Override
+                    public void onNext(List<BookSourceBean> bookSourceBeans) {
+                        if (bookSourceBeans.size() > 1) {
+                            toast(String.format("导入成功%d个书源, 显示第一个", bookSourceBeans.size()));
+                            setText(bookSourceBeans.get(0));
+                        } else if (bookSourceBeans.size() == 1) {
+                            setText(bookSourceBeans.get(0));
+                        } else {
+                            toast("未导入");
+                        }
+                    }
 
-                                @Override
-                                public void onError(Throwable e) {
-                                    toast(e.getLocalizedMessage());
-                                }
-                            });
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
+                    @Override
+                    public void onError(Throwable e) {
+                        toast(e.getLocalizedMessage());
+                    }
+                });
+            } else {
+                toast("导入失败");
             }
         }
     }
