@@ -28,8 +28,11 @@ import com.kunfei.bookshelf.help.RxBusTag;
 import com.kunfei.bookshelf.presenter.BookDetailPresenter;
 import com.kunfei.bookshelf.presenter.SearchBookPresenter;
 import com.kunfei.bookshelf.presenter.contract.SearchBookContract;
+import com.kunfei.bookshelf.utils.ColorUtil;
+import com.kunfei.bookshelf.utils.Selector;
 import com.kunfei.bookshelf.utils.SharedPreferencesUtil;
 import com.kunfei.bookshelf.utils.SoftInputUtil;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
 import com.kunfei.bookshelf.view.adapter.SearchBookAdapter;
 import com.kunfei.bookshelf.widget.explosionfield.ExplosionField;
 import com.kunfei.bookshelf.widget.recycler.refresh.OnLoadMoreListener;
@@ -40,6 +43,7 @@ import java.util.List;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -50,6 +54,8 @@ public class SearchBookActivity extends MBaseActivity<SearchBookContract.Present
     SearchView searchView;
     @BindView(R.id.toolbar)
     Toolbar toolbar;
+    @BindView(R.id.card_search)
+    CardView cardSearch;
     @BindView(R.id.ll_search_history)
     LinearLayout llSearchHistory;
     @BindView(R.id.tv_search_history_clean)
@@ -85,7 +91,9 @@ public class SearchBookActivity extends MBaseActivity<SearchBookContract.Present
 
     @Override
     protected void onCreateActivity() {
+        getWindow().getDecorView().setBackgroundColor(ThemeStore.backgroundColor(this));
         setContentView(R.layout.activity_search_book);
+        ButterKnife.bind(this);
     }
 
     @Override
@@ -97,11 +105,15 @@ public class SearchBookActivity extends MBaseActivity<SearchBookContract.Present
     @SuppressLint("InflateParams")
     @Override
     protected void bindView() {
-        ButterKnife.bind(this);
-        this.setSupportActionBar(toolbar);
-        setupActionBar();
+        cardSearch.setCardBackgroundColor(ThemeStore.primaryColorDark(this));
         initSearchView();
+        setSupportActionBar(toolbar);
+        setupActionBar();
         fabSearchStop.hide();
+        fabSearchStop.setBackgroundTintList(Selector.colorBuild()
+                .setDefaultColor(ThemeStore.accentColor(this))
+                .setPressedColor(ColorUtil.darkenColor(ThemeStore.accentColor(this)))
+                .create());
         llSearchHistory.setOnClickListener(null);
         rfRvSearchBooks.setRefreshRecyclerViewAdapter(searchBookAdapter, new LinearLayoutManager(this));
 
@@ -303,7 +315,7 @@ public class SearchBookActivity extends MBaseActivity<SearchBookContract.Present
             case "show_nav_shelves":
                 SharedPreferencesUtil.saveData("showNavShelves", enable);
                 msg = "已" + (enable ? "启" : "禁") + "用侧边栏书架！";
-                RxBus.get().post(RxBusTag.UPDATE_PX, true);
+                RxBus.get().post(RxBusTag.RECREATE, true);
                 break;
             case "fade_tts":
                 SharedPreferencesUtil.saveData("fadeTTS", enable);

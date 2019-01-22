@@ -6,14 +6,13 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
     android:id="@+id/ll_content">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/AppTheme.AppBarOverlay"
+        android:theme="?attr/actionBarStyle"
         android:transitionName="sharedView"
         tools:ignore="UnusedAttribute">
 

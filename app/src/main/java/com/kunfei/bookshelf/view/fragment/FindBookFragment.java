@@ -10,6 +10,7 @@ import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
 import com.kunfei.bookshelf.base.MBaseFragment;
 import com.kunfei.bookshelf.bean.BookSourceBean;
@@ -18,6 +19,7 @@ import com.kunfei.bookshelf.bean.FindKindGroupBean;
 import com.kunfei.bookshelf.model.BookSourceManager;
 import com.kunfei.bookshelf.presenter.FindBookPresenter;
 import com.kunfei.bookshelf.presenter.contract.FindBookContract;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
 import com.kunfei.bookshelf.view.activity.ChoiceBookActivity;
 import com.kunfei.bookshelf.view.activity.SourceEditActivity;
 import com.kunfei.bookshelf.view.adapter.FindKindAdapter;
@@ -53,7 +55,7 @@ public class FindBookFragment extends MBaseFragment<FindBookContract.Presenter> 
     @BindView(R.id.vw_divider)
     View vwDivider;
 
-    Unbinder unbinder;
+    private Unbinder unbinder;
     private FindLeftAdapter findLeftAdapter;
     private FindRightAdapter findRightAdapter;
     private FindKindAdapter findKindAdapter;
@@ -79,7 +81,7 @@ public class FindBookFragment extends MBaseFragment<FindBookContract.Presenter> 
     protected void bindView() {
         super.bindView();
         unbinder = ButterKnife.bind(this, view);
-        refreshLayout.setColorSchemeColors(getResources().getColor(R.color.colorAccent));
+        refreshLayout.setColorSchemeColors(ThemeStore.accentColor(MApplication.getInstance()));
         refreshLayout.setOnRefreshListener(() -> {
             mPresenter.initData();
             refreshLayout.setRefreshing(false);
@@ -118,7 +120,7 @@ public class FindBookFragment extends MBaseFragment<FindBookContract.Presenter> 
             rlEmptyView.setVisibility(View.GONE);
             rvFindLeft.setVisibility(View.VISIBLE);
             vwDivider.setVisibility(View.VISIBLE);
-            if (group.size() == 1) {
+            if (group.size() <= 1) {
                 rvFindLeft.setVisibility(View.GONE);
                 vwDivider.setVisibility(View.GONE);
             }

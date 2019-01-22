@@ -12,6 +12,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import androidx.annotation.StringRes;
 
@@ -271,10 +274,62 @@ public class StringUtils {
         return result;
     }
 
+    public static boolean isTrimEmpty(String text) {
+        if (text == null) {
+            return true;
+        }
+        if (text.length() == 0) {
+            return true;
+        }
+        return text.trim().length() == 0;
+    }
+
     public static boolean startWithIgnoreCase(String src, String obj) {
         if (obj.length() > src.length()) {
             return false;
         }
         return src.substring(0, obj.length()).equalsIgnoreCase(obj);
+    }
+
+    /**
+     * delimiter 分隔符
+     * elements 需要连接的字符数组
+     */
+    public static String join(CharSequence delimiter, CharSequence... elements) {
+        // 空指针判断
+        Objects.requireNonNull(delimiter);
+        Objects.requireNonNull(elements);
+
+        // Number of elements not likely worth Arrays.stream overhead.
+        // 此处用到了StringJoiner(JDK 8引入的类）
+        // 先构造一个以参数delimiter为分隔符的StringJoiner对象
+        StringJoiner joiner = new StringJoiner(delimiter);
+        for (CharSequence cs: elements) {
+            // 拼接字符
+            joiner.add(cs);
+        }
+        return joiner.toString();
+    }
+
+    public static String join(CharSequence delimiter, Iterable<? extends CharSequence> elements) {
+        Objects.requireNonNull(delimiter);
+        Objects.requireNonNull(elements);
+        StringJoiner joiner = new StringJoiner(delimiter);
+        for (CharSequence cs: elements) {
+            joiner.add(cs);
+        }
+        return joiner.toString();
+    }
+
+    public static boolean isContainNumber(String company) {
+        Pattern p = Pattern.compile("[0-9]");
+        Matcher m = p.matcher(company);
+        return m.find();
+    }
+
+    public static boolean isNumeric(String str){
+        Pattern pattern = Pattern.compile("[0-9]*");
+        Matcher isNum = pattern.matcher(str);
+        return isNum.matches();
     }
 }

@@ -1,6 +1,5 @@
 package com.kunfei.bookshelf.view.fragment;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,6 +19,8 @@ import com.kunfei.bookshelf.utils.FileUtil;
 import com.kunfei.bookshelf.utils.PermissionUtils;
 import com.kunfei.bookshelf.view.activity.SettingActivity;
 
+import java.util.Objects;
+
 import cn.qqtheme.framework.picker.FilePicker;
 
 /**
@@ -27,20 +28,16 @@ import cn.qqtheme.framework.picker.FilePicker;
  * 设置
  */
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
-    private final int REQUEST_CODE_OPEN_DIRECTORY = 101;
     private SettingActivity settingActivity;
-    private Context mContext;
-    private SharedPreferences sharedPreferences;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getPreferenceManager().setSharedPreferencesName("CONFIG");
         addPreferencesFromResource(R.xml.pref_settings);
-        mContext = this.getActivity();
         settingActivity = (SettingActivity) this.getActivity();
-        sharedPreferences = getPreferenceManager().getSharedPreferences();
-        if (sharedPreferences.getString(getString(R.string.pk_download_path), "").equals("")) {
+        SharedPreferences sharedPreferences = getPreferenceManager().getSharedPreferences();
+        if (Objects.equals(sharedPreferences.getString(getString(R.string.pk_download_path), ""), "")) {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString(getString(R.string.pk_download_path), FileHelp.getCachePath());
             editor.apply();
@@ -49,7 +46,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         bindPreferenceSummaryToValue(findPreference(getString(R.string.pk_download_path)));
     }
 
-    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = (Preference preference, Object value)-> {
+    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = (Preference preference, Object value) -> {
         String stringValue = value.toString();
 
         if (preference instanceof ListPreference) {
@@ -85,11 +82,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(getString(R.string.pk_ImmersionStatusBar)) || key.equals(getString(R.string.pk_navigationBarColorChange))) {
-            settingActivity.initImmersionBar();
-            RxBus.get().post(RxBusTag.IMMERSION_CHANGE, true);
-        } else if (key.equals(getString(R.string.pk_bookshelf_px))) {
-            RxBus.get().post(RxBusTag.UPDATE_PX, true);
+        if (key.equals(getString(R.string.pk_bookshelf_px))) {
+            RxBus.get().post(RxBusTag.RECREATE, true);
         }
     }
 
@@ -142,8 +136,5 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_OPEN_DIRECTORY && resultCode == Activity.RESULT_OK) {
-
-        }
     }
 }

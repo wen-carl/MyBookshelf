@@ -64,7 +64,8 @@
         <activity
             android:name=".view.activity.ReadBookActivity"
             android:configChanges="locale|keyboardHidden"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="behind">
             <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -95,7 +96,8 @@
             android:name=".view.activity.BookDetailActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTask"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/CAppTransparentTheme"
+            android:screenOrientation="behind" />
         <activity
             android:name=".view.activity.ImportBookActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
@@ -110,6 +112,10 @@
             android:launchMode="singleTask" />
         <activity
             android:name=".view.activity.SettingActivity"
+            android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
+            android:launchMode="singleTask" />
+        <activity
+            android:name=".view.activity.ThemeSettingActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTask" />
         <activity
@@ -133,7 +139,7 @@
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTask" />
         <activity
-            android:name=".view.activity.BookInfoActivity"
+            android:name=".view.activity.BookInfoEditActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize" />
@@ -144,7 +150,8 @@
         <activity
             android:name=".view.activity.ChapterListActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
-            android:launchMode="singleTask" />
+            android:launchMode="singleTask"
+            android:screenOrientation="behind" />
         <activity android:name=".view.activity.SourceLoginActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTask" />
@@ -166,6 +173,7 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
 
         <service android:name=".service.DownloadService" />
         <service android:name=".service.ReadAloudService" />

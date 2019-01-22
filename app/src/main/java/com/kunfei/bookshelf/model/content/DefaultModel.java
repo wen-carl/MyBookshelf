@@ -10,7 +10,7 @@ import com.kunfei.bookshelf.bean.ChapterListBean;
 import com.kunfei.bookshelf.bean.SearchBookBean;
 import com.kunfei.bookshelf.model.BookSourceManager;
 import com.kunfei.bookshelf.model.analyzeRule.AnalyzeHeaders;
-import com.kunfei.bookshelf.model.analyzeRule.AnalyzeSearchUrl;
+import com.kunfei.bookshelf.model.analyzeRule.AnalyzeUrl;
 import com.kunfei.bookshelf.model.impl.IHttpGetApi;
 import com.kunfei.bookshelf.model.impl.IHttpPostApi;
 import com.kunfei.bookshelf.model.impl.IStationBookModel;
@@ -24,6 +24,7 @@ import java.util.Map;
 import io.reactivex.Observable;
 import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import retrofit2.Response;
 
 import static android.text.TextUtils.isEmpty;
 
@@ -80,40 +81,17 @@ public class DefaultModel extends BaseModelImpl implements IStationBookModel {
         }
         BookList bookList = new BookList(tag, name, bookSourceBean);
         try {
-            AnalyzeSearchUrl analyzeSearchUrl = new AnalyzeSearchUrl(url, "", page);
-            if (analyzeSearchUrl.getSearchUrl() == null) {
+            AnalyzeUrl analyzeUrl = new AnalyzeUrl(url, "", page, headerMap);
+            if (analyzeUrl.getHost() == null) {
                 return Observable.create(emitter -> {
                     emitter.onNext(new ArrayList<>());
                     emitter.onComplete();
                 });
             }
-            if (url.contains("@")) {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpPostApi.class)
-                        .searchBook(analyzeSearchUrl.getSearchPath(),
-                                analyzeSearchUrl.getQueryMap(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            } else if (url.contains("?")) {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpGetApi.class)
-                        .searchBook(analyzeSearchUrl.getSearchPath(),
-                                analyzeSearchUrl.getQueryMap(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            } else {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpGetApi.class)
-                        .getWebContent(analyzeSearchUrl.getSearchPath(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            }
+            return getResponseO(analyzeUrl)
+                    .flatMap(bookList::analyzeSearchBook);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Observable.create(emitter -> {
-                emitter.onNext(new ArrayList<>());
-                emitter.onComplete();
-            });
+            return Observable.error(new Throwable(String.format("%s错误:%s", url, e.getLocalizedMessage())));
         }
     }
 
@@ -130,34 +108,15 @@ public class DefaultModel extends BaseModelImpl implements IStationBookModel {
         }
         BookList bookList = new BookList(tag, name, bookSourceBean);
         try {
-            AnalyzeSearchUrl analyzeSearchUrl = new AnalyzeSearchUrl(bookSourceBean.getRuleSearchUrl(), content, page);
-            if (analyzeSearchUrl.getSearchUrl() == null) {
+            AnalyzeUrl analyzeUrl = new AnalyzeUrl(bookSourceBean.getRuleSearchUrl(), content, page, headerMap);
+            if (analyzeUrl.getHost() == null) {
                 return Observable.create(emitter -> {
                     emitter.onNext(new ArrayList<>());
                     emitter.onComplete();
                 });
             }
-            if (bookSourceBean.getRuleSearchUrl().contains("@")) {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpPostApi.class)
-                        .searchBook(analyzeSearchUrl.getSearchPath(),
-                                analyzeSearchUrl.getQueryMap(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            } else if (bookSourceBean.getRuleSearchUrl().contains("?")) {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpGetApi.class)
-                        .searchBook(analyzeSearchUrl.getSearchPath(),
-                                analyzeSearchUrl.getQueryMap(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            } else {
-                return getRetrofitString(analyzeSearchUrl.getSearchUrl())
-                        .create(IHttpGetApi.class)
-                        .getWebContent(analyzeSearchUrl.getSearchPath(),
-                                headerMap)
-                        .flatMap(bookList::analyzeSearchBook);
-            }
+            return getResponseO(analyzeUrl)
+                    .flatMap(bookList::analyzeSearchBook);
         } catch (Exception e) {
             e.printStackTrace();
             return Observable.create(emitter -> {
@@ -176,10 +135,13 @@ public class DefaultModel extends BaseModelImpl implements IStationBookModel {
             return Observable.error(new Throwable(String.format("无法找到源%s", tag)));
         }
         BookInfo bookInfo = new BookInfo(tag, name, bookSourceBean);
-        return getRetrofitString(tag)
-                .create(IHttpGetApi.class)
-                .getWebContent(bookShelfBean.getNoteUrl(), headerMap)
-                .flatMap(response -> bookInfo.analyzeBookInfo(response.body(), bookShelfBean));
+        try {
+            AnalyzeUrl analyzeUrl = new AnalyzeUrl(bookShelfBean.getNoteUrl(), null, null, headerMap);
+            return getResponseO(analyzeUrl)
+                    .flatMap(response -> bookInfo.analyzeBookInfo(response.body(), bookShelfBean));
+        } catch (Exception e) {
+            return Observable.error(new Throwable(String.format("url错误:%s", bookShelfBean.getNoteUrl())));
+        }
     }
 
     /**
@@ -194,10 +156,13 @@ public class DefaultModel extends BaseModelImpl implements IStationBookModel {
             });
         }
         BookChapter bookChapter = new BookChapter(tag, bookSourceBean);
-        return getRetrofitString(tag)
-                .create(IHttpGetApi.class)
-                .getWebContent(bookShelfBean.getBookInfoBean().getChapterUrl(), headerMap)
-                .flatMap(response -> bookChapter.analyzeChapterList(response.body(), bookShelfBean));
+        try {
+            AnalyzeUrl analyzeUrl = new AnalyzeUrl(bookShelfBean.getBookInfoBean().getChapterUrl(), null, null, headerMap);
+            return getResponseO(analyzeUrl)
+                    .flatMap(response -> bookChapter.analyzeChapterList(response.body(), bookShelfBean));
+        } catch (Exception e) {
+            return Observable.error(new Throwable(String.format("url错误:%s", bookShelfBean.getBookInfoBean().getChapterUrl())));
+        }
     }
 
     /**
@@ -218,11 +183,35 @@ public class DefaultModel extends BaseModelImpl implements IStationBookModel {
                     .observeOn(scheduler)
                     .flatMap(response -> bookContent.analyzeBookContent(response, chapterBean));
         } else {
-            return getRetrofitString(tag)
-                    .create(IHttpGetApi.class)
-                    .getWebContent(chapterBean.getDurChapterUrl(), headerMap)
-                    .subscribeOn(scheduler)
-                    .flatMap(response -> bookContent.analyzeBookContent(response.body(), chapterBean));
+            try {
+                AnalyzeUrl analyzeUrl = new AnalyzeUrl(chapterBean.getDurChapterUrl(), null, null, headerMap);
+                return getResponseO(analyzeUrl)
+                        .flatMap(response -> bookContent.analyzeBookContent(response.body(), chapterBean));
+            } catch (Exception e) {
+                return Observable.error(new Throwable(String.format("url错误:%s", chapterBean.getDurChapterUrl())));
+            }
+        }
+    }
+
+    private Observable<Response<String>> getResponseO(AnalyzeUrl analyzeUrl) {
+        switch (analyzeUrl.getUrlMode()) {
+            case POST:
+                return getRetrofitString(analyzeUrl.getHost())
+                        .create(IHttpPostApi.class)
+                        .searchBook(analyzeUrl.getUrl(),
+                                analyzeUrl.getQueryMap(),
+                                analyzeUrl.getHeaderMap());
+            case GET:
+                return getRetrofitString(analyzeUrl.getHost())
+                        .create(IHttpGetApi.class)
+                        .searchBook(analyzeUrl.getUrl(),
+                                analyzeUrl.getQueryMap(),
+                                analyzeUrl.getHeaderMap());
+            default:
+                return getRetrofitString(analyzeUrl.getHost())
+                        .create(IHttpGetApi.class)
+                        .getWebContent(analyzeUrl.getUrl(),
+                                analyzeUrl.getHeaderMap());
         }
     }
 

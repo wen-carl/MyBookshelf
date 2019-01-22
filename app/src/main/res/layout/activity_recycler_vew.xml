@@ -5,7 +5,6 @@
     android:id="@+id/ll_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
@@ -13,7 +12,7 @@
         android:id="@+id/action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/AppTheme.AppBarOverlay"
+        android:theme="?attr/actionBarStyle"
         android:transitionName="sharedView"
         tools:ignore="UnusedAttribute">
 
@@ -28,16 +27,12 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/background">
+        android:layout_height="match_parent">
 
         <com.kunfei.bookshelf.widget.recycler.scroller.FastScrollRecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:bubbleColor="@color/tv_text_button_deep_pre"
-            app:handleColor="@color/tv_text_button_pre"
-            app:trackColor="@color/bg_divider_line" />
+            android:layout_height="match_parent" />
 
     </RelativeLayout>
 

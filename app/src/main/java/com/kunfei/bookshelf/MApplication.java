@@ -17,6 +17,7 @@ import com.kunfei.bookshelf.help.Constant;
 import com.kunfei.bookshelf.help.CrashHandler;
 import com.kunfei.bookshelf.help.FileHelp;
 import com.kunfei.bookshelf.model.UpLastChapterModel;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +60,7 @@ public class MApplication extends Application {
         super.onCreate();
         instance = this;
         CrashHandler.getInstance().init(this);
+        // default theme
         try {
             versionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
             versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
@@ -77,8 +79,10 @@ public class MApplication extends Application {
         if (TextUtils.isEmpty(downloadPath)) {
             setDownloadPath(FileHelp.getCachePath());
         }
-        AppFrontBackHelper frontBackHelper = new AppFrontBackHelper();
-        frontBackHelper.register(this, new AppFrontBackHelper.OnAppStatusListener() {
+        if (!ThemeStore.isConfigured(this, versionCode)) {
+            upThemeStore();
+        }
+        AppFrontBackHelper.getInstance().register(this, new AppFrontBackHelper.OnAppStatusListener() {
             @Override
             public void onFront() {
                 donateHb = System.currentTimeMillis() - configPreferences.getLong("DonateHb", 0) <= TimeUnit.DAYS.toMillis(3);
@@ -97,6 +101,22 @@ public class MApplication extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         MultiDex.install(this);
+    }
+
+    public void upThemeStore() {
+        if (configPreferences.getBoolean("nightTheme", false)) {
+            ThemeStore.editTheme(this)
+                    .primaryColor(configPreferences.getInt("colorPrimaryNight", getResources().getColor(R.color.md_grey_800)))
+                    .accentColor(configPreferences.getInt("colorAccentNight", getResources().getColor(R.color.md_pink_800)))
+                    .backgroundColor(configPreferences.getInt("colorBackgroundNight", getResources().getColor(R.color.md_grey_800)))
+                    .apply();
+        } else {
+            ThemeStore.editTheme(this)
+                    .primaryColor(configPreferences.getInt("colorPrimary", getResources().getColor(R.color.md_grey_100)))
+                    .accentColor(configPreferences.getInt("colorAccent", getResources().getColor(R.color.md_pink_600)))
+                    .backgroundColor(configPreferences.getInt("colorBackground", getResources().getColor(R.color.md_grey_100)))
+                    .apply();
+        }
     }
 
     public void setDownloadPath(String downloadPath) {

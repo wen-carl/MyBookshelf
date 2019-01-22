@@ -43,6 +43,7 @@ import com.kunfei.bookshelf.presenter.contract.SourceEditContract;
 import com.kunfei.bookshelf.utils.RxUtils;
 import com.kunfei.bookshelf.utils.ScreenUtils;
 import com.kunfei.bookshelf.utils.SoftInputUtil;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
 import com.kunfei.bookshelf.view.popupwindow.KeyboardToolPop;
 
 import java.io.File;
@@ -240,6 +241,7 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
 
     @Override
     protected void onCreateActivity() {
+        getWindow().getDecorView().setBackgroundColor(ThemeStore.backgroundColor(this));
         setContentView(R.layout.activity_source_edit);
     }
 
@@ -549,6 +551,8 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
                             .subscribe(new SimpleObserver<Boolean>() {
                                 @Override
                                 public void onNext(Boolean aBoolean) {
+                                    bookSourceBean = getBookSource();
+                                    setResult(RESULT_OK);
                                     SourceDebugActivity.startThis(SourceEditActivity.this, getBookSource().getBookSourceUrl());
                                 }
 

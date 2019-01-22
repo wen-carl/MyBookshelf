@@ -1,68 +1,48 @@
 package com.kunfei.bookshelf.view.activity;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
 
-import com.google.android.material.tabs.TabLayout;
 import com.hwangjr.rxbus.RxBus;
-import com.hwangjr.rxbus.annotation.Subscribe;
-import com.hwangjr.rxbus.annotation.Tag;
-import com.hwangjr.rxbus.thread.EventThread;
 import com.kunfei.basemvplib.impl.IPresenter;
 import com.kunfei.bookshelf.BitIntentDataManager;
 import com.kunfei.bookshelf.R;
+import com.kunfei.bookshelf.base.BaseTabActivity;
 import com.kunfei.bookshelf.base.MBaseActivity;
-import com.kunfei.bookshelf.bean.BookContentBean;
 import com.kunfei.bookshelf.bean.BookShelfBean;
-import com.kunfei.bookshelf.bean.BookmarkBean;
-import com.kunfei.bookshelf.help.RxBusTag;
-import com.kunfei.bookshelf.view.adapter.ChapterListAdapter;
-import com.kunfei.bookshelf.widget.AppCompat;
-import com.kunfei.bookshelf.widget.recycler.scroller.FastScrollRecyclerView;
+import com.kunfei.bookshelf.help.ReadBookControl;
+import com.kunfei.bookshelf.utils.ColorUtil;
+import com.kunfei.bookshelf.utils.Theme.ATH;
+import com.kunfei.bookshelf.utils.Theme.MaterialValueHelper;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
+import com.kunfei.bookshelf.view.fragment.BookmarkFragment;
+import com.kunfei.bookshelf.view.fragment.ChapterListFragment;
 
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.List;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.fragment.app.Fragment;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-public class ChapterListActivity extends MBaseActivity {
+public class ChapterListActivity extends BaseTabActivity {
 
-    @BindView(R.id.rv_list)
-    FastScrollRecyclerView rvList;
-    @BindView(R.id.toolbar_tab)
-    TabLayout toolbarTab;
     @BindView(R.id.toolbar)
     Toolbar toolbar;
-    @BindView(R.id.tv_current_chapter_info)
-    TextView tvChapterInfo;
-    @BindView(R.id.iv_chapter_sort)
-    ImageView ivChapterSort;
-    @BindView(R.id.ll_chapter_base_info)
-    View llBaseInfo;
-    @BindView(R.id.v_shadow)
-    View vShadow;
 
-    SearchView searchView;
-
-    private ChapterListAdapter chapterListAdapter;
-
-    private LinearLayoutManager layoutManager;
-
+    private ReadBookControl readBookControl = ReadBookControl.getInstance();
+    private SearchView searchView;
     private BookShelfBean bookShelf;
-
-    private boolean isChapterReverse;
 
     public static void startThis(MBaseActivity activity, BookShelfBean bookShelf) {
         if (bookShelf.getChapterList().size() == 0) return;
@@ -85,12 +65,13 @@ public class ChapterListActivity extends MBaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setOrientation(readBookControl.getScreenDirection());
         super.onCreate(savedInstanceState);
         RxBus.get().register(this);
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         if (bookShelf != null) {
             String key = String.valueOf(System.currentTimeMillis());
@@ -107,7 +88,13 @@ public class ChapterListActivity extends MBaseActivity {
 
     @Override
     protected void onCreateActivity() {
+        getWindow().getDecorView().setBackgroundColor(ThemeStore.backgroundColor(this));
         setContentView(R.layout.activity_chapterlist);
+        ButterKnife.bind(this);
+        setupActionBar();
+        mTlIndicator.setSelectedTabIndicatorColor(ThemeStore.accentColor(this));
+        mTlIndicator.setTabTextColors(ColorUtil.isColorLight(ThemeStore.primaryColor(this)) ? Color.BLACK : Color.WHITE,
+                ThemeStore.accentColor(this));
     }
 
     @Override
@@ -115,71 +102,19 @@ public class ChapterListActivity extends MBaseActivity {
         String key = getIntent().getStringExtra("data_key");
         bookShelf = (BookShelfBean) BitIntentDataManager.getInstance().getData(key);
         BitIntentDataManager.getInstance().cleanData(key);
+    }
 
-        isChapterReverse = preferences.getBoolean("isChapterReverse", false);
+    /**************abstract***********/
+    @Override
+    protected List<Fragment> createTabFragments() {
+        ChapterListFragment chapterListFragment = new ChapterListFragment();
+        BookmarkFragment bookmarkFragment = new BookmarkFragment();
+        return Arrays.asList(chapterListFragment, bookmarkFragment);
     }
 
     @Override
-    protected void bindView() {
-        ButterKnife.bind(this);
-        setupActionBar();
-        AppCompat.setToolbarNavIconTint(toolbar, getResources().getColor(R.color.menu_color_default));
-        rvList.setLayoutManager(layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, isChapterReverse));
-        rvList.setItemAnimator(null);
-        chapterListAdapter = new ChapterListAdapter(bookShelf, new ChapterListAdapter.OnItemClickListener() {
-            @Override
-            public void itemClick(int index, int page, int tabPosition) {
-                searchViewCollapsed();
-                if (index != bookShelf.getDurChapter()) {
-                    RxBus.get().post(RxBusTag.SKIP_TO_CHAPTER, new OpenChapterBean(index, page));
-                }
-                finish();
-            }
-
-            @Override
-            public void itemLongClick(BookmarkBean bookmarkBean, int tabPosition) {
-                searchViewCollapsed();
-                RxBus.get().post(RxBusTag.OPEN_BOOK_MARK, bookmarkBean);
-                finish();
-            }
-        });
-        if (bookShelf != null) {
-            rvList.setAdapter(chapterListAdapter);
-            updateIndex(bookShelf.getDurChapter());
-            updateChapterInfo();
-        }
-    }
-
-    @Override
-    protected void bindEvent() {
-        toolbarTab.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                showChapterInfo(tab.getPosition() == 0);
-                updateWhenTabChanged(tab.getPosition());
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-                updateWhenTabChanged(tab.getPosition());
-            }
-        });
-
-        tvChapterInfo.setOnClickListener(view -> layoutManager.scrollToPositionWithOffset(bookShelf.getDurChapter(), 0));
-
-        ivChapterSort.setOnClickListener(v -> {
-            if (chapterListAdapter != null) {
-                isChapterReverse = !isChapterReverse;
-                preferences.edit().putBoolean("isChapterReverse", isChapterReverse).apply();
-                layoutManager.setReverseLayout(isChapterReverse);
-                layoutManager.scrollToPositionWithOffset(bookShelf.getDurChapter(), 0);
-            }
-        });
+    protected List<String> createTabTitles() {
+        return Arrays.asList(getString(R.string.chapter_list), getString(R.string.bookmark));
     }
 
     @Override
@@ -187,14 +122,14 @@ public class ChapterListActivity extends MBaseActivity {
         getMenuInflater().inflate(R.menu.menu_search_view, menu);
         MenuItem search = menu.findItem(R.id.action_search);
         searchView = (SearchView) search.getActionView();
-        AppCompat.useCustomIconForSearchView(searchView, getResources().getString(R.string.search));
+        ATH.setTint(searchView, MaterialValueHelper.getPrimaryTextColor(this, ColorUtil.isColorLight(ThemeStore.primaryColor(this))));
         searchView.setMaxWidth(getResources().getDisplayMetrics().widthPixels);
         searchView.onActionViewCollapsed();
         searchView.setOnCloseListener(() -> {
-            toolbarTab.setVisibility(VISIBLE);
+            mTlIndicator.setVisibility(VISIBLE);
             return false;
         });
-        searchView.setOnSearchClickListener(view -> toolbarTab.setVisibility(GONE));
+        searchView.setOnSearchClickListener(view -> mTlIndicator.setVisibility(GONE));
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -203,11 +138,15 @@ public class ChapterListActivity extends MBaseActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                chapterListAdapter.search(newText);
+                if (mTlIndicator.getSelectedTabPosition() == 1) {
+                    ((BookmarkFragment) mFragmentList.get(1)).startSearch(newText);
+                } else {
+                    ((ChapterListFragment) mFragmentList.get(0)).startSearch(newText);
+                }
                 return false;
             }
         });
-        return true;
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -221,7 +160,7 @@ public class ChapterListActivity extends MBaseActivity {
 
     @Override
     public void onBackPressed() {
-        if (toolbarTab.getVisibility() != VISIBLE) {
+        if (mTlIndicator.getVisibility() != VISIBLE) {
             searchViewCollapsed();
             return;
         }
@@ -237,70 +176,13 @@ public class ChapterListActivity extends MBaseActivity {
         }
     }
 
-    private void updateIndex(int durChapter) {
-        if (toolbarTab.getSelectedTabPosition() == 0) {
-            chapterListAdapter.setIndex(durChapter);
-        } else {
-            chapterListAdapter.notifyDataSetChanged();
-        }
-
-        layoutManager.scrollToPositionWithOffset(durChapter, 0);
+    public BookShelfBean getBookShelf() {
+        return bookShelf;
     }
 
-    private void updateChapterInfo() {
-        if (bookShelf != null) {
-            if (chapterListAdapter.getItemCount() == 0) {
-                tvChapterInfo.setText(bookShelf.getDurChapterName());
-            } else {
-                tvChapterInfo.setText(String.format(Locale.getDefault(), "%s (%d/%d章)", bookShelf.getDurChapterName(), bookShelf.getDurChapter() + 1, bookShelf.getChapterListSize()));
-            }
-        }
-    }
-
-    private void showChapterInfo(boolean show) {
-        llBaseInfo.setVisibility(show ? View.VISIBLE : View.GONE);
-        vShadow.setVisibility(show ? View.VISIBLE : View.GONE);
-    }
-
-    private void updateWhenTabChanged(int tabPos) {
-        if (chapterListAdapter != null) {
-            chapterListAdapter.tabChange(tabPos);
-            if (tabPos == 0) {
-                layoutManager.setReverseLayout(isChapterReverse);
-                updateIndex(bookShelf.getDurChapter());
-            } else {
-                layoutManager.setReverseLayout(false);
-            }
-        }
-    }
-
-    private void searchViewCollapsed() {
+    public void searchViewCollapsed() {
         searchView.onActionViewCollapsed();
-        toolbarTab.setVisibility(VISIBLE);
+        mTlIndicator.setVisibility(VISIBLE);
     }
 
-    @Subscribe(thread = EventThread.MAIN_THREAD, tags = {@Tag(RxBusTag.CHAPTER_CHANGE)})
-    public void chapterChange(BookContentBean bookContentBean) {
-        if (bookShelf != null && bookShelf.getNoteUrl().equals(bookContentBean.getNoteUrl())) {
-            chapterListAdapter.upChapter(bookContentBean.getDurChapterIndex());
-        }
-    }
-
-    public class OpenChapterBean {
-        private int chapterIndex;
-        private int pageIndex;
-
-        OpenChapterBean(int chapterIndex, int pageIndex) {
-            this.chapterIndex = chapterIndex;
-            this.pageIndex = pageIndex;
-        }
-
-        public int getChapterIndex() {
-            return chapterIndex;
-        }
-
-        public int getPageIndex() {
-            return pageIndex;
-        }
-    }
 }

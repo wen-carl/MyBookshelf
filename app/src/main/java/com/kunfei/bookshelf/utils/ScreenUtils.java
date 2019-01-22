@@ -19,7 +19,7 @@ public class ScreenUtils {
 
     public static int dpToPx(int dp) {
         DisplayMetrics metrics = getDisplayMetrics();
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, metrics);
+        return (int) (dp * metrics.density + 0.5f * (dp >= 0 ? 1 : -1));
     }
 
     public static int pxToDp(int px) {
@@ -28,8 +28,8 @@ public class ScreenUtils {
     }
 
     public static int spToPx(int sp) {
-        DisplayMetrics metrics = getDisplayMetrics();
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics);
+        float fontScale = getDisplayMetrics().scaledDensity;
+        return (int) (sp * fontScale + 0.5f);
     }
 
     public static int pxToSp(int px) {
@@ -66,9 +66,7 @@ public class ScreenUtils {
     }
 
     /**
-     * 获取导航栏的高度
-     *
-     * @return
+     * 获取状态栏的高度
      */
     public static int getStatusBarHeight() {
         Resources resources = MApplication.getInstance().getResources();
@@ -78,8 +76,6 @@ public class ScreenUtils {
 
     /**
      * 获取虚拟按键的高度
-     *
-     * @return
      */
     public static int getNavigationBarHeight() {
         int navigationBarHeight = 0;
@@ -112,16 +108,15 @@ public class ScreenUtils {
             } else if ("0".equals(navBarOverride)) {
                 hasNavigationBar = true;
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         return hasNavigationBar;
     }
 
     public static DisplayMetrics getDisplayMetrics() {
-        DisplayMetrics metrics = MApplication
+        return MApplication
                 .getInstance()
                 .getResources()
                 .getDisplayMetrics();
-        return metrics;
     }
 }

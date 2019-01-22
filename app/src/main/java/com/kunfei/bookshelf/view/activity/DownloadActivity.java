@@ -5,7 +5,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,6 +15,7 @@ import com.kunfei.bookshelf.R;
 import com.kunfei.bookshelf.base.MBaseActivity;
 import com.kunfei.bookshelf.bean.DownloadBookBean;
 import com.kunfei.bookshelf.service.DownloadService;
+import com.kunfei.bookshelf.utils.Theme.ThemeStore;
 import com.kunfei.bookshelf.view.adapter.DownloadAdapter;
 
 import java.lang.ref.WeakReference;
@@ -78,6 +78,7 @@ public class DownloadActivity extends MBaseActivity {
      */
     @Override
     protected void onCreateActivity() {
+        getWindow().getDecorView().setBackgroundColor(ThemeStore.backgroundColor(this));
         setContentView(R.layout.activity_recycler_vew);
         ButterKnife.bind(this);
         this.setSupportActionBar(toolbar);
@@ -120,13 +121,6 @@ public class DownloadActivity extends MBaseActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setTitle(R.string.download_offline);
         }
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem pauseMenu = menu.getItem(0);
-        pauseMenu.getIcon().setColorFilter(getResources().getColor(R.color.menu_color_default), PorterDuff.Mode.SRC_ATOP);
-        return super.onPrepareOptionsMenu(menu);
     }
 
     // 添加菜单
