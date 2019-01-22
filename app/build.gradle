@@ -14,12 +14,12 @@ android {
     compileSdkVersion 28
     buildToolsVersion '28.0.3'
     signingConfigs {
-        myConfig {
-            storeFile file(RELEASE_STORE_FILE)
-            storePassword RELEASE_KEY_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_STORE_PASSWORD
-        }
+//        myConfig {
+//            storeFile file(RELEASE_STORE_FILE)
+//            storePassword RELEASE_KEY_PASSWORD
+//            keyAlias RELEASE_KEY_ALIAS
+//            keyPassword RELEASE_STORE_PASSWORD
+//        }
     }
 
     defaultConfig {
