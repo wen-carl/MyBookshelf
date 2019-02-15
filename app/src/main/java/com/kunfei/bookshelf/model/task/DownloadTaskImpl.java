@@ -199,8 +199,8 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
             }
             e.onComplete();
         })
-                .flatMap(result -> WebBookModel.getInstance().getBookContent(scheduler, chapter, chapter.getBookName()))
-                .timeout(20, TimeUnit.SECONDS)
+                .flatMap(result -> WebBookModel.getInstance().getBookContent(chapter, chapter.getBookName()))
+                .timeout(30, TimeUnit.SECONDS)
                 .subscribeOn(scheduler)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<BookContentBean>() {

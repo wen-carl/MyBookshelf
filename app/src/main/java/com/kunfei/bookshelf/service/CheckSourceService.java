@@ -10,9 +10,9 @@ import android.os.Handler;
 import android.os.IBinder;
 
 import com.hwangjr.rxbus.RxBus;
-import com.kunfei.basemvplib.BaseModelImpl;
 import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
+import com.kunfei.bookshelf.base.BaseModelImpl;
 import com.kunfei.bookshelf.bean.BookSourceBean;
 import com.kunfei.bookshelf.help.RxBusTag;
 import com.kunfei.bookshelf.model.BookSourceManager;
@@ -180,7 +180,7 @@ public class CheckSourceService extends Service {
         private void startCheck() {
                 try {
                     new URL(sourceBean.getBookSourceUrl());
-                    BaseModelImpl.getRetrofitString(sourceBean.getBookSourceUrl())
+                    BaseModelImpl.getInstance().getRetrofitString(sourceBean.getBookSourceUrl())
                             .create(IHttpGetApi.class)
                             .getWebContent(sourceBean.getBookSourceUrl(), AnalyzeHeaders.getMap(sourceBean))
                             .subscribeOn(scheduler)

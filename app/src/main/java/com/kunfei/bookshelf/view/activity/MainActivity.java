@@ -35,9 +35,9 @@ import com.kunfei.bookshelf.model.UpLastChapterModel;
 import com.kunfei.bookshelf.presenter.MainPresenter;
 import com.kunfei.bookshelf.presenter.contract.MainContract;
 import com.kunfei.bookshelf.utils.PermissionUtils;
-import com.kunfei.bookshelf.utils.Theme.ATH;
-import com.kunfei.bookshelf.utils.Theme.NavigationViewUtil;
-import com.kunfei.bookshelf.utils.Theme.ThemeStore;
+import com.kunfei.bookshelf.utils.theme.ATH;
+import com.kunfei.bookshelf.utils.theme.NavigationViewUtil;
+import com.kunfei.bookshelf.utils.theme.ThemeStore;
 import com.kunfei.bookshelf.view.fragment.BookListFragment;
 import com.kunfei.bookshelf.view.fragment.FindBookFragment;
 import com.kunfei.bookshelf.widget.modialog.MoDialogHUD;
@@ -592,10 +592,8 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
     @Override
     protected void firstRequest() {
         if (!isRecreate) {
-            handler.postDelayed(() -> {
-                versionUpRun();
-                requestPermission();
-            }, 10000);
+            versionUpRun();
+            requestPermission();
             handler.postDelayed(this::preloadReader, 200);
         }
         handler.postDelayed(() -> UpLastChapterModel.getInstance().startUpdate(), 60 * 1000);

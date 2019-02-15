@@ -27,7 +27,7 @@ import com.kunfei.bookshelf.presenter.BookSourcePresenter;
 import com.kunfei.bookshelf.presenter.contract.BookSourceContract;
 import com.kunfei.bookshelf.utils.FileUtil;
 import com.kunfei.bookshelf.utils.PermissionUtils;
-import com.kunfei.bookshelf.utils.Theme.ThemeStore;
+import com.kunfei.bookshelf.utils.theme.ThemeStore;
 import com.kunfei.bookshelf.view.adapter.BookSourceAdapter;
 import com.kunfei.bookshelf.widget.modialog.MoDialogHUD;
 
@@ -205,7 +205,7 @@ public class BookSourceActivity extends MBaseActivity<BookSourceContract.Present
     public void refreshBookSource() {
         if (isSearch) {
             String term = "%" + searchView.getQuery() + "%";
-            List<BookSourceBean> sourceBeanList = DbHelper.getInstance().getmDaoSession().getBookSourceBeanDao().queryBuilder()
+            List<BookSourceBean> sourceBeanList = DbHelper.getDaoSession().getBookSourceBeanDao().queryBuilder()
                     .whereOr(BookSourceBeanDao.Properties.BookSourceName.like(term),
                             BookSourceBeanDao.Properties.BookSourceGroup.like(term),
                             BookSourceBeanDao.Properties.BookSourceUrl.like(term))
