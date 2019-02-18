@@ -17,15 +17,15 @@ import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
 import com.kunfei.bookshelf.base.MBaseActivity;
 import com.kunfei.bookshelf.bean.BookSourceBean;
+import com.kunfei.bookshelf.constant.RxBusTag;
 import com.kunfei.bookshelf.dao.BookSourceBeanDao;
 import com.kunfei.bookshelf.dao.DbHelper;
 import com.kunfei.bookshelf.help.ACache;
 import com.kunfei.bookshelf.help.MyItemTouchHelpCallback;
-import com.kunfei.bookshelf.help.RxBusTag;
 import com.kunfei.bookshelf.model.BookSourceManager;
 import com.kunfei.bookshelf.presenter.BookSourcePresenter;
 import com.kunfei.bookshelf.presenter.contract.BookSourceContract;
-import com.kunfei.bookshelf.utils.FileUtil;
+import com.kunfei.bookshelf.utils.FileUtils;
 import com.kunfei.bookshelf.utils.PermissionUtils;
 import com.kunfei.bookshelf.utils.theme.ThemeStore;
 import com.kunfei.bookshelf.view.adapter.BookSourceAdapter;
@@ -423,7 +423,7 @@ public class BookSourceActivity extends MBaseActivity<BookSourceContract.Present
                     break;
                 case IMPORT_SOURCE:
                     if (data != null) {
-                        mPresenter.importBookSourceLocal(FileUtil.getPath(this, data.getData()));
+                        mPresenter.importBookSourceLocal(FileUtils.getPath(this, data.getData()));
                     }
                     break;
                 case REQUEST_QR:
