@@ -45,8 +45,8 @@ import com.kunfei.bookshelf.utils.PermissionUtils;
 import com.kunfei.bookshelf.utils.ScreenUtils;
 import com.kunfei.bookshelf.utils.StringUtils;
 import com.kunfei.bookshelf.utils.SystemUtil;
-import com.kunfei.bookshelf.utils.barUtil.BarHide;
-import com.kunfei.bookshelf.utils.barUtil.ImmersionBar;
+import com.kunfei.bookshelf.utils.bar.BarHide;
+import com.kunfei.bookshelf.utils.bar.ImmersionBar;
 import com.kunfei.bookshelf.utils.theme.ThemeStore;
 import com.kunfei.bookshelf.view.popupwindow.CheckAddShelfPop;
 import com.kunfei.bookshelf.view.popupwindow.MoreSettingPop;
@@ -144,7 +144,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         if (savedInstanceState != null) {
             noteUrl = savedInstanceState.getString("noteUrl");
             isAdd = savedInstanceState.getBoolean("isAdd");
-            aloudStatus = ReadAloudService.Status.valueOf(savedInstanceState.getString("aloudStatus"));
+            aloudStatus = ReadAloudService.Status.valueOf(savedInstanceState.getString("aloudStatus", ReadAloudService.Status.STOP.name()));
         }
         readBookControl.initTextDrawableIndex();
         super.onCreate(savedInstanceState);
@@ -513,7 +513,6 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
             public void speechRateFollowSys() {
                 if (ReadAloudService.running) {
                     ReadAloudService.stop(ReadBookActivity.this);
-                    toast("跟随系统需要重新开始朗读");
                 }
             }
         });
@@ -909,7 +908,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         final String charset = mPresenter.getBookShelf().getBookInfoBean().getCharset();
         moDialogHUD.showInputBox("输入编码",
                 charset,
-                new String[]{"UTF-8", "GB2312", "GBK", "Unicode", "UTF-16", "ASCII"},
+                new String[]{"UTF-8", "GB2312", "GBK", "Unicode", "UTF-16", "UTF-16LE", "ASCII"},
                 (inputText -> {
                     inputText = inputText.trim();
                     if (!Objects.equals(charset, inputText)) {
@@ -1010,7 +1009,11 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
      * 检查是否加入书架
      */
     public boolean checkAddShelf() {
-        if (isAdd || mPresenter.getBookShelf() == null || TextUtils.isEmpty(mPresenter.getBookShelf().getBookInfoBean().getName())) {
+        if (isAdd || mPresenter.getBookShelf() == null
+                || TextUtils.isEmpty(mPresenter.getBookShelf().getBookInfoBean().getName())) {
+            return true;
+        } else if (mPresenter.getBookShelf().realChapterListEmpty()) {
+            mPresenter.removeFromShelf();
             return true;
         } else {
             if (checkAddShelfPop == null) {

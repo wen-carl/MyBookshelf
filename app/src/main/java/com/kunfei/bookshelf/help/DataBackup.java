@@ -20,9 +20,9 @@ import com.kunfei.bookshelf.utils.FileUtils;
 import com.kunfei.bookshelf.utils.PermissionUtils;
 import com.kunfei.bookshelf.utils.RxUtils;
 import com.kunfei.bookshelf.utils.TimeUtils;
-import com.kunfei.bookshelf.utils.WebDav.WebDavFile;
 import com.kunfei.bookshelf.utils.XmlUtils;
 import com.kunfei.bookshelf.utils.ZipUtils;
+import com.kunfei.bookshelf.utils.web_dav.WebDavFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -73,6 +73,7 @@ public class DataBackup {
                 backupReplaceRule(dirPath);
                 backupConfig(dirPath);
                 upload(dirPath);
+                e.onSuccess(true);
             }
         }).compose(RxUtils::toSimpleSingle)
                 .subscribe();
@@ -208,7 +209,7 @@ public class DataBackup {
     }
 
     private void backupConfig(String file) {
-        SharedPreferences pref = MApplication.getInstance().getConfigPreferences();
+        SharedPreferences pref = MApplication.getConfigPreferences();
         try (FileOutputStream out = new FileOutputStream(file + "/config.xml")) {
             XmlUtils.writeMapXml(pref.getAll(), out);
         } catch (Exception e) {

@@ -32,12 +32,13 @@ import io.reactivex.disposables.Disposable;
 public class FindBookPresenter extends BasePresenterImpl<FindBookContract.View> implements FindBookContract.Presenter {
     private Disposable disposable;
 
+    @SuppressWarnings("unchecked")
     @Override
     public void initData() {
         if (disposable != null) return;
         Single.create((SingleOnSubscribe<List<RecyclerViewData>>) e -> {
             List<RecyclerViewData> group = new ArrayList<>();
-            boolean showAllFind = MApplication.getInstance().getConfigPreferences().getBoolean("showAllFind", true);
+            boolean showAllFind = MApplication.getConfigPreferences().getBoolean("showAllFind", true);
             List<BookSourceBean> sourceBeans = new ArrayList<>(showAllFind ? BookSourceManager.getAllBookSourceBySerialNumber() : BookSourceManager.getSelectedBookSourceBySerialNumber());
             for (BookSourceBean sourceBean : sourceBeans) {
                 try {

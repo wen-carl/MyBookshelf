@@ -1,7 +1,6 @@
 package com.kunfei.bookshelf.model.analyzeRule;
 
 import android.text.TextUtils;
-import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.kunfei.bookshelf.base.BaseModelImpl;
@@ -81,7 +80,7 @@ public class AnalyzeRule {
     private AnalyzeByXPath getAnalyzeByXPath() {
         if (analyzeByXPath == null || objectChangedXP) {
             analyzeByXPath = new AnalyzeByXPath();
-            analyzeByXPath.parse(((Element) _object).children());
+            analyzeByXPath.parse(_object.toString());
             objectChangedXP = false;
         }
         return analyzeByXPath;
@@ -301,6 +300,6 @@ public class AnalyzeRule {
      */
     @SuppressWarnings("unused")
     public String base64Decoder(String base64) {
-        return new String(Base64.decode(base64.getBytes(), Base64.DEFAULT));
+        return StringUtils.base64Decode(base64);
     }
 }

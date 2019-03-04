@@ -21,9 +21,9 @@ import com.kunfei.bookshelf.help.ProcessTextHelp;
 import com.kunfei.bookshelf.help.WebDavHelp;
 import com.kunfei.bookshelf.utils.FileUtils;
 import com.kunfei.bookshelf.utils.RxUtils;
-import com.kunfei.bookshelf.utils.WebDav.WebDavFile;
 import com.kunfei.bookshelf.utils.ZipUtils;
 import com.kunfei.bookshelf.utils.theme.ATH;
+import com.kunfei.bookshelf.utils.web_dav.WebDavFile;
 import com.kunfei.bookshelf.view.activity.SettingActivity;
 
 import java.util.ArrayList;
@@ -147,20 +147,24 @@ public class WebDavSettingsFragment extends PreferenceFragment implements Shared
 
                         @Override
                         public void onSuccess(String[] strings) {
-                            AlertDialog dialog = new AlertDialog.Builder(settingActivity)
-                                    .setTitle("选择恢复文件")
-                                    .setSingleChoiceItems(strings, 0, (dialogInterface, i) -> {
-                                        restore(WebDavHelp.getWebDavUrl() + "YueDu/" + strings[i]);
-                                        dialogInterface.dismiss();
-                                    })
-                                    .create();
-                            dialog.show();
-                            ATH.setAlertDialogTint(dialog);
+                            if (strings.length > 0) {
+                                AlertDialog dialog = new AlertDialog.Builder(settingActivity)
+                                        .setTitle("选择恢复文件")
+                                        .setSingleChoiceItems(strings, 0, (dialogInterface, i) -> {
+                                            restore(WebDavHelp.getWebDavUrl() + "YueDu/" + strings[i]);
+                                            dialogInterface.dismiss();
+                                        })
+                                        .create();
+                                dialog.show();
+                                ATH.setAlertDialogTint(dialog);
+                            } else {
+                                Toast.makeText(MApplication.getInstance(), "没有找到备份", Toast.LENGTH_SHORT).show();
+                            }
                         }
 
                         @Override
                         public void onError(Throwable e) {
-
+                            Toast.makeText(MApplication.getInstance(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                         }
                     });
 

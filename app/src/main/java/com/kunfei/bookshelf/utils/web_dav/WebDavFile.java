@@ -1,8 +1,8 @@
-package com.kunfei.bookshelf.utils.WebDav;
+package com.kunfei.bookshelf.utils.web_dav;
 
-import com.kunfei.bookshelf.utils.WebDav.http.Handler;
-import com.kunfei.bookshelf.utils.WebDav.http.HttpAuth;
-import com.kunfei.bookshelf.utils.WebDav.http.OkHttp;
+import com.kunfei.bookshelf.utils.web_dav.http.Handler;
+import com.kunfei.bookshelf.utils.web_dav.http.HttpAuth;
+import com.kunfei.bookshelf.utils.web_dav.http.OkHttp;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -82,7 +82,7 @@ public class WebDavFile {
      *
      * @return 远程文件是否存在
      */
-    public boolean indexFileInfo() {
+    public boolean indexFileInfo() throws IOException {
         Response response = propFindResponse(new ArrayList<>());
         String s = "";
         try {
@@ -104,7 +104,7 @@ public class WebDavFile {
      *
      * @return 文件列表
      */
-    public List<WebDavFile> listFiles() {
+    public List<WebDavFile> listFiles() throws IOException {
         return listFiles(new ArrayList<>());
     }
 
@@ -114,7 +114,7 @@ public class WebDavFile {
      * @param propsList 指定列出文件的哪些属性
      * @return 文件列表
      */
-    public List<WebDavFile> listFiles(ArrayList<String> propsList) {
+    public List<WebDavFile> listFiles(ArrayList<String> propsList) throws IOException {
         Response response = propFindResponse(propsList);
         try {
             assert response != null;
@@ -127,7 +127,11 @@ public class WebDavFile {
         return new ArrayList<>();
     }
 
-    private Response propFindResponse(ArrayList<String> propsList) {
+    private Response propFindResponse(ArrayList<String> propsList) throws IOException {
+        return propFindResponse(propsList, 1);
+    }
+
+    private Response propFindResponse(ArrayList<String> propsList, int depth) throws IOException {
         StringBuilder requestProps = new StringBuilder();
         for (String p : propsList) {
             requestProps.append("<a:").append(p).append("/>\n");
@@ -148,14 +152,9 @@ public class WebDavFile {
         if (auth != null) {
             request.header("Authorization", Credentials.basic(auth.getUser(), auth.getPass()));
         }
+        request.header("Depth", depth < 0 ? "infinity" : Integer.toString(depth));
 
-        try {
-            return okHttpClient.newCall(request.build()).execute();
-        } catch (Exception e) {
-            //catch (IOException | XmlPullParserException | IllegalArgumentException e)
-            e.printStackTrace();
-        }
-        return null;
+        return okHttpClient.newCall(request.build()).execute();
     }
 
     private List<WebDavFile> parseDir(String s) {
@@ -166,12 +165,18 @@ public class WebDavFile {
         for (Element element : elements) {
             String href = element.getElementsByTag("d:href").get(0).text();
             if (!href.endsWith("/")) {
-                String fileName = element.getElementsByTag("d:displayname").get(0).text();
+                Elements elements1 = element.getElementsByTag("d:displayname");
+                String fileName;
+                if (elements1.size() > 0) {
+                    fileName = element.getElementsByTag("d:displayname").get(0).text();
+                } else {
+                    fileName = href.substring(href.lastIndexOf("/") + 1);
+                }
                 WebDavFile webDavFile;
                 try {
                     webDavFile = new WebDavFile(baseUrl + fileName);
                     webDavFile.setDisplayName(fileName);
-                    webDavFile.setSize(Long.parseLong(element.getElementsByTag("d:getcontentlength").get(0).text()));
+                    webDavFile.setUrlName(href);
                     list.add(webDavFile);
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
@@ -205,7 +210,7 @@ public class WebDavFile {
      *
      * @return 是否创建成功
      */
-    public boolean makeAsDir() {
+    public boolean makeAsDir() throws IOException {
         Request.Builder request = new Request.Builder()
                 .url(getUrl())
                 .method("MKCOL", null);
@@ -258,11 +263,11 @@ public class WebDavFile {
      * @param localPath 本地文件路径
      * @return 是否成功成功
      */
-    public boolean upload(String localPath) {
+    public boolean upload(String localPath) throws IOException {
         return upload(localPath, null);
     }
 
-    public boolean upload(String localPath, String contentType) {
+    public boolean upload(String localPath, String contentType) throws IOException {
         File file = new File((localPath));
         if (!file.exists()) return false;
         MediaType mediaType = contentType == null ? null : MediaType.parse(contentType);
@@ -281,19 +286,14 @@ public class WebDavFile {
      * @param requestBuilder 因为还需要追加验证信息，所以此处传递Request.Builder的对象，而不是Request的对象
      * @return 请求执行的结果
      */
-    private boolean execRequest(Request.Builder requestBuilder) {
+    private boolean execRequest(Request.Builder requestBuilder) throws IOException {
         HttpAuth.Auth auth = HttpAuth.getAuth();
         if (auth != null) {
             requestBuilder.header("Authorization", Credentials.basic(auth.getUser(), auth.getPass()));
         }
 
-        try {
-            Response response = okHttpClient.newCall(requestBuilder.build()).execute();
-            return response.isSuccessful();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        Response response = okHttpClient.newCall(requestBuilder.build()).execute();
+        return response.isSuccessful();
     }
 
     /**
@@ -347,6 +347,10 @@ public class WebDavFile {
 
     public void setSize(long size) {
         this.size = size;
+    }
+
+    public void setUrlName(String urlName) {
+        this.urlName = urlName;
     }
 
     public boolean isDirectory() {
