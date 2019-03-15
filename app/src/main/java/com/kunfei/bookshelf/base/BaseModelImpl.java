@@ -5,7 +5,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.webkit.CookieManager;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -19,8 +18,11 @@ import com.kunfei.bookshelf.model.analyzeRule.AnalyzeUrl;
 import com.kunfei.bookshelf.model.impl.IHttpGetApi;
 import com.kunfei.bookshelf.model.impl.IHttpPostApi;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import io.reactivex.Observable;
 import okhttp3.Interceptor;
@@ -132,48 +134,74 @@ public class BaseModelImpl {
 
     @SuppressLint({"AddJavascriptInterface", "SetJavaScriptEnabled"})
     protected Observable<String> getAjaxHtml(AnalyzeUrl analyzeUrl, String sourceUrl) {
+        String js = "document.documentElement.outerHTML";
         return Observable.create(e -> {
+            final Html html = new Html("加载超时");
             Handler handler = new Handler(Looper.getMainLooper());
             handler.post(() -> {
-                class HtmlOutJavaScriptInterface {
-                    private WebView webView;
-
-                    private HtmlOutJavaScriptInterface(WebView webView) {
-                        this.webView = webView;
-                    }
-
-                    @SuppressWarnings("unused")
-                    @JavascriptInterface
-                    public void processHTML(String html) {
-                        e.onNext(html);
-                        e.onComplete();
-                        webView.destroy();
-                    }
-                }
+                Runnable timeoutRunnable;
                 WebView webView = new WebView(MApplication.getInstance());
                 webView.getSettings().setJavaScriptEnabled(true);
                 webView.getSettings().setUserAgentString(analyzeUrl.getHeaderMap().get("User-Agent"));
-                webView.addJavascriptInterface(new HtmlOutJavaScriptInterface(webView), "HTML_OUT");
                 CookieManager cookieManager = CookieManager.getInstance();
+                Runnable retryRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        webView.evaluateJavascript(js, value -> {
+                            html.content = StringEscapeUtils.unescapeJson(value);
+                            if (isLoadFinish(html.content)) {
+                                e.onNext(html.content);
+                                e.onComplete();
+                                webView.destroy();
+                                handler.removeCallbacks(this);
+                            } else {
+                                handler.postDelayed(this, 1000);
+                            }
+                        });
+                    }
+                };
+                timeoutRunnable = () -> {
+                    if (!e.isDisposed()) {
+                        handler.removeCallbacks(retryRunnable);
+                        e.onNext(html.content);
+                        e.onComplete();
+                        webView.destroy();
+                    }
+                };
+                handler.postDelayed(timeoutRunnable, 25000);
                 webView.setWebViewClient(new WebViewClient() {
                     @Override
                     public void onPageFinished(WebView view, String url) {
-                        DbHelper.getDaoSession().getCookieBeanDao().insertOrReplace(new CookieBean(sourceUrl, cookieManager.getCookie(webView.getUrl())));
-                        webView.loadUrl("javascript:window.HTML_OUT.processHTML('<head>'+document.getElementsByTagName('html')[0].innerHTML+'</head>');");
+                        DbHelper.getDaoSession().getCookieBeanDao()
+                                .insertOrReplace(new CookieBean(sourceUrl, cookieManager.getCookie(webView.getUrl())));
+                        handler.postDelayed(retryRunnable, 1000);
                     }
                 });
                 switch (analyzeUrl.getUrlMode()) {
                     case POST:
-                        webView.postUrl(analyzeUrl.getUrl(), analyzeUrl.getQueryStr().getBytes());
+                        webView.postUrl(analyzeUrl.getUrl(), analyzeUrl.getPostData());
                         break;
                     case GET:
-                        webView.loadUrl(String.format("%s?%s", analyzeUrl.getUrl(), analyzeUrl.getQueryStr()));
+                        webView.loadUrl(String.format("%s?%s", analyzeUrl.getUrl(), analyzeUrl.getQueryStr()), analyzeUrl.getHeaderMap());
                         break;
                     default:
-                        webView.loadUrl(analyzeUrl.getUrl());
+                        webView.loadUrl(analyzeUrl.getUrl(), analyzeUrl.getHeaderMap());
                 }
             });
         });
+    }
+
+    private boolean isLoadFinish(String value) {    // 验证正文内容是否符合要求
+        value = value.replaceAll("&nbsp;|<br.*?>|\\s|\\n","");
+        return Pattern.matches(".*[^\\x00-\\xFF]{50,}.*", value);
+    }
+
+    private class Html {
+        private String content;
+
+        Html(String content) {
+            this.content = content;
+        }
     }
 
 }

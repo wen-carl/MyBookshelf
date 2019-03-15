@@ -172,7 +172,7 @@ public class BookInfoEditActivity extends MBaseActivity {
 
             @Override
             public void onUserHasAlreadyTurnedDown(String... permission) {
-                BookInfoEditActivity.this.toast("获取背景图片需存储权限");
+                BookInfoEditActivity.this.toast(R.string.bg_image_per);
             }
 
             @Override
@@ -225,7 +225,7 @@ public class BookInfoEditActivity extends MBaseActivity {
                 saveInfo();
                 break;
             case android.R.id.home:
-                SoftInputUtil.hideIMM(this, getCurrentFocus());
+                SoftInputUtil.hideIMM(getCurrentFocus());
                 finish();
                 break;
         }
@@ -240,7 +240,7 @@ public class BookInfoEditActivity extends MBaseActivity {
         initCover();
         BookshelfHelp.saveBookToShelf(book);
         RxBus.get().post(RxBusTag.HAD_ADD_BOOK, book);
-        SoftInputUtil.hideIMM(this, getCurrentFocus());
+        SoftInputUtil.hideIMM(getCurrentFocus());
         finish();
     }
 
@@ -268,12 +268,12 @@ public class BookInfoEditActivity extends MBaseActivity {
 
             @Override
             public void onUserHasAlreadyTurnedDown(String... permission) {
-                BookInfoEditActivity.this.toast("获取背景图片需存储权限");
+                BookInfoEditActivity.this.toast(R.string.bg_image_per);
             }
 
             @Override
             public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
-                BookInfoEditActivity.this.toast("获取背景图片需存储权限");
+                BookInfoEditActivity.this.toast(R.string.bg_image_per);
                 PermissionUtils.toAppSetting(BookInfoEditActivity.this);
             }
         });

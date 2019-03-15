@@ -283,19 +283,14 @@ public class StringUtils {
     }
 
     public static boolean isTrimEmpty(String text) {
-        if (text == null) {
-            return true;
-        }
-        if (text.length() == 0) {
-            return true;
-        }
+        if (text == null) return true;
+        if (text.length() == 0) return true;
         return text.trim().length() == 0;
     }
 
     public static boolean startWithIgnoreCase(String src, String obj) {
-        if (obj.length() > src.length()) {
-            return false;
-        }
+        if (src == null || obj == null) return false;
+        if (obj.length() > src.length()) return false;
         return src.substring(0, obj.length()).equalsIgnoreCase(obj);
     }
 
@@ -339,5 +334,34 @@ public class StringUtils {
         Pattern pattern = Pattern.compile("[0-9]*");
         Matcher isNum = pattern.matcher(str);
         return isNum.matches();
+    }
+
+    public static String getBaseUrl(String url) {
+        if (url == null) return null;
+        int index = url.indexOf("/", 9);
+        if (index == -1) {
+            return url;
+        }
+        return url.substring(0, index);
+    }
+
+    public static String trim(String string) {
+        if (string == null) {
+            return null;
+        }
+        return string.replaceAll("(^\\s+|\\s+$)", "");
+    }
+
+    public static String removeUTFCharacters(String data) {
+        if (data == null) return null;
+        Pattern p = Pattern.compile("\\\\u(\\p{XDigit}{4})");
+        Matcher m = p.matcher(data);
+        StringBuffer buf = new StringBuffer(data.length());
+        while (m.find()) {
+            String ch = String.valueOf((char) Integer.parseInt(m.group(1), 16));
+            m.appendReplacement(buf, Matcher.quoteReplacement(ch));
+        }
+        m.appendTail(buf);
+        return buf.toString();
     }
 }

@@ -129,7 +129,7 @@ public class SourceDebugActivity extends MBaseActivity {
                 if (TextUtils.isEmpty(query))
                     return false;
                 startDebug(query);
-                SoftInputUtil.hideIMM(SourceDebugActivity.this, searchView);
+                SoftInputUtil.hideIMM(searchView);
                 return true;
             }
 
@@ -158,7 +158,7 @@ public class SourceDebugActivity extends MBaseActivity {
                     @SuppressLint("DefaultLocale")
                     @Override
                     public void onNext(List<SearchBookBean> searchBookBeans) {
-                        tvContent.setText(String.format("搜索列表获取成功%d", searchBookBeans.size()));
+                        tvContent.setText(getString(R.string.get_book_list_success, searchBookBeans.size()));
                         SearchBookBean searchBookBean = searchBookBeans.get(0);
                         tvContent.setText(String.format("%s\n书名:%s", tvContent.getText(), searchBookBean.getName()));
                         tvContent.setText(String.format("%s\n作者:%s", tvContent.getText(), searchBookBean.getAuthor()));
