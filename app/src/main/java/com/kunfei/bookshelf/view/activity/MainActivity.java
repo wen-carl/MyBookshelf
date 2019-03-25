@@ -29,6 +29,7 @@ import com.kunfei.bookshelf.base.BaseTabActivity;
 import com.kunfei.bookshelf.constant.RxBusTag;
 import com.kunfei.bookshelf.help.BookshelfHelp;
 import com.kunfei.bookshelf.help.ChapterContentHelp;
+import com.kunfei.bookshelf.help.FileHelp;
 import com.kunfei.bookshelf.help.LauncherIcon;
 import com.kunfei.bookshelf.help.ReadBookControl;
 import com.kunfei.bookshelf.model.UpLastChapterModel;
@@ -379,7 +380,7 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
                     }
 
                     @Override
-                    public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+                    public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                         PermissionUtils.requestMorePermissions(MainActivity.this, permission, FILE_SELECT_RESULT);
                     }
                 });
@@ -559,7 +560,7 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
             }
 
             @Override
-            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+            public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                 PermissionUtils.requestMorePermissions(MainActivity.this, permission, BACKUP_RESULT);
             }
         });
@@ -588,7 +589,7 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
             }
 
             @Override
-            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+            public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                 PermissionUtils.requestMorePermissions(MainActivity.this, permission, RESTORE_RESULT);
             }
         });
@@ -600,9 +601,9 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
     private void versionUpRun() {
         if (preferences.getInt("versionCode", 0) != MApplication.getVersionCode()) {
             //保存版本号
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putInt("versionCode", MApplication.getVersionCode());
-            editor.apply();
+            preferences.edit()
+                    .putInt("versionCode", MApplication.getVersionCode())
+                    .apply();
             //更新日志
             moDialogHUD.showAssetMarkdown("updateLog.md");
         }
@@ -623,8 +624,10 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
     protected void firstRequest() {
         if (!isRecreate) {
             versionUpRun();
-            requestPermission();
             handler.postDelayed(this::preloadReader, 200);
+        }
+        if (!Objects.equals(MApplication.downloadPath, FileHelp.getFilesPath())) {
+            requestPermission();
         }
         handler.postDelayed(() -> UpLastChapterModel.getInstance().startUpdate(), 60 * 1000);
     }
@@ -673,7 +676,7 @@ public class MainActivity extends BaseTabActivity<MainContract.Presenter> implem
             }
 
             @Override
-            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+            public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                 switch (requestCode) {
                     case FILE_SELECT_RESULT:
                         MainActivity.this.toast(R.string.import_book_per);

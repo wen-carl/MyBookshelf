@@ -53,6 +53,7 @@ public class ReadBookControl {
     private Boolean showTimeBattery;
     private Boolean showLine;
     private Boolean darkStatusIcon;
+    private int indent;
     private int screenTimeOut;
     private int paddingLeft;
     private int paddingTop;
@@ -84,6 +85,7 @@ public class ReadBookControl {
     public void updateReaderSettings() {
         this.hideStatusBar = preferences.getBoolean("hide_status_bar", false);
         this.hideNavigationBar = preferences.getBoolean("hide_navigation_bar", false);
+        this.indent = preferences.getInt("indent", 2);
         this.textSize = preferences.getInt("textSize", 20);
         this.canClickTurn = preferences.getBoolean("canClickTurn", true);
         this.canKeyTurn = preferences.getBoolean("canKeyTurn", true);
@@ -338,7 +340,7 @@ public class ReadBookControl {
     }
 
     public Bitmap getBgBitmap() {
-        return bgBitmap.copy(Bitmap.Config.RGB_565, true);
+        return bgBitmap.copy(Bitmap.Config.ARGB_8888, true);
     }
 
     public int getTextDrawableIndex() {
@@ -366,14 +368,14 @@ public class ReadBookControl {
                 .apply();
     }
 
-    public void setNavbarColor(int navBarColor) {
+    public void setNavBarColor(int navBarColor) {
         this.navBarColor = navBarColor;
         preferences.edit()
                 .putInt("navBarColorInt", navBarColor)
                 .apply();
     }
 
-    public int getNavbarColor() {
+    public int getNavBarColor() {
         return navBarColor;
     }
 
@@ -671,6 +673,17 @@ public class ReadBookControl {
                 .apply();
     }
 
+    public void setIndent(int indent) {
+        this.indent = indent;
+        preferences.edit()
+                .putInt("indent", indent)
+                .apply();
+    }
+
+    public int getIndent() {
+        return indent;
+    }
+
     public int getLight() {
         return preferences.getInt("light", getScreenBrightness());
     }
@@ -696,8 +709,7 @@ public class ReadBookControl {
         ContentResolver cr = MApplication.getInstance().getContentResolver();
         try {
             value = Settings.System.getInt(cr, Settings.System.SCREEN_BRIGHTNESS);
-        } catch (Settings.SettingNotFoundException e) {
-            e.printStackTrace();
+        } catch (Settings.SettingNotFoundException ignored) {
         }
         return value;
     }

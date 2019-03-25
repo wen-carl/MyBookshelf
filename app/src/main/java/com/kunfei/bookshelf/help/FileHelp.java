@@ -51,9 +51,23 @@ public class FileHelp {
                 file.createNewFile();
             }
         } catch (IOException e) {
-            e.printStackTrace();
         }
         return file;
+    }
+
+    //获取Cache文件夹
+    public static String getFilesPath() {
+        if (isSdCardExist()) {
+            try {
+                return MApplication.getInstance()
+                        .getExternalFilesDir(null)
+                        .getAbsolutePath();
+            } catch (Exception ignored) {
+            }
+        }
+        return MApplication.getInstance()
+                .getFilesDir()
+                .getAbsolutePath();
     }
 
     //获取Cache文件夹
@@ -122,9 +136,7 @@ public class FileHelp {
                 }
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
         } finally {
             IOUtils.close(reader);
         }

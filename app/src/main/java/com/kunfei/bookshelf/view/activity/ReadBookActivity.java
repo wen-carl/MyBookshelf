@@ -144,7 +144,6 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         if (savedInstanceState != null) {
             noteUrl = savedInstanceState.getString("noteUrl");
             isAdd = savedInstanceState.getBoolean("isAdd");
-            aloudStatus = ReadAloudService.Status.valueOf(savedInstanceState.getString("aloudStatus", ReadAloudService.Status.STOP.name()));
         }
         readBookControl.initTextDrawableIndex();
         super.onCreate(savedInstanceState);
@@ -165,7 +164,6 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         super.onSaveInstanceState(outState);
         if (mPresenter.getBookShelf() != null) {
             outState.putString("noteUrl", mPresenter.getBookShelf().getNoteUrl());
-            outState.putString("aloudStatus", aloudStatus.name());
             outState.putBoolean("isAdd", isAdd);
         }
     }
@@ -241,7 +239,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
         } else {
             mImmersionBar.showBarDivider();
         }
-        int barColorType = readBookControl.getNavbarColor();
+        int barColorType = readBookControl.getNavBarColor();
         if (llMenuBottom.getVisibility() == View.VISIBLE
                 || readAdjustPop.getVisibility() == View.VISIBLE
                 || readInterfacePop.getVisibility() == View.VISIBLE
@@ -605,7 +603,6 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
                 intent.setData(Uri.parse(url));
                 startActivity(intent);
             } catch (Exception e) {
-                e.printStackTrace();
                 toast(R.string.can_not_open);
             }
         });
@@ -1259,7 +1256,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
             }
 
             @Override
-            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+            public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                 PermissionUtils.requestMorePermissions(ReadBookActivity.this, permission, MApplication.RESULT__PERMS);
             }
         });
@@ -1304,7 +1301,7 @@ public class ReadBookActivity extends MBaseActivity<ReadBookContract.Presenter> 
             }
 
             @Override
-            public void onUserHasAlreadyTurnedDownAndDontAsk(String... permission) {
+            public void onAlreadyTurnedDownAndNoAsk(String... permission) {
                 ReadBookActivity.this.toast(R.string.open_local_book_per);
                 PermissionUtils.toAppSetting(ReadBookActivity.this);
             }

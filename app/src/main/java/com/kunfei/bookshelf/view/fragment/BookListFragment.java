@@ -114,7 +114,7 @@ public class BookListFragment extends MBaseFragment<BookListContract.Presenter> 
         refreshLayout.setOnRefreshListener(() -> {
             mPresenter.queryBookShelf(NetworkUtil.isNetWorkAvailable(), group);
             if (!NetworkUtil.isNetWorkAvailable()) {
-                Toast.makeText(getContext(), "无网络，请打开网络后再试。", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), R.string.network_connection_unavailable, Toast.LENGTH_SHORT).show();
             }
             refreshLayout.setRefreshing(false);
         });
@@ -146,7 +146,6 @@ public class BookListFragment extends MBaseFragment<BookListContract.Presenter> 
                     BitIntentDataManager.getInstance().putData(key, bookShelfBean.clone());
                 } catch (CloneNotSupportedException e) {
                     BitIntentDataManager.getInstance().putData(key, bookShelfBean);
-                    e.printStackTrace();
                 }
                 startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
             }
