@@ -82,6 +82,8 @@ public class ReadInterfacePop extends FrameLayout {
     NumberButton nbTipPaddingLeft;
     @BindView(R.id.nbTipPaddingRight)
     NumberButton nbTipPaddingRight;
+    @BindView(R.id.nbLetterSpacing)
+    NumberButton nbLetterSpacing;
 
     private ReadBookActivity activity;
     private ReadBookControl readBookControl = ReadBookControl.getInstance();
@@ -103,8 +105,7 @@ public class ReadInterfacePop extends FrameLayout {
     }
 
     private void init(Context context) {
-        View view = LayoutInflater.from(context).inflate(R.layout.pop_read_interface, null);
-        addView(view);
+        View view = LayoutInflater.from(context).inflate(R.layout.pop_read_interface, this);
         ButterKnife.bind(this, view);
         view.setOnClickListener(null);
     }
@@ -128,6 +129,18 @@ public class ReadInterfacePop extends FrameLayout {
                 .setNumber(readBookControl.getTextSize())
                 .setOnChangedListener(number -> {
                     readBookControl.setTextSize((int) number);
+                    changeProListener.upTextSize();
+                });
+
+        nbLetterSpacing.setTitle(activity.getContext().getString(R.string.text_letter_spacing))
+                .setNumberType(NumberButton.FLOAT)
+                .setMinNumber(-0.5f)
+                .setMaxNumber(0.5f)
+                .setStepNumber(0.01f)
+                .setFormat("0.00")
+                .setNumber(readBookControl.getTextLetterSpacing())
+                .setOnChangedListener(number -> {
+                    readBookControl.setTextLetterSpacing(number);
                     changeProListener.upTextSize();
                 });
 

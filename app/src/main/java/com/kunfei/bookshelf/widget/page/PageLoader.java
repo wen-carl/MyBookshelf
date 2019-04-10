@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -213,7 +214,7 @@ public abstract class PageLoader {
     }
 
     /**
-     * 作用：设置与文字相关的参数
+     * 设置与文字相关的参数
      */
     private void setUpTextParams() {
         // 文字大小
@@ -228,6 +229,9 @@ public abstract class PageLoader {
         mTitlePara = (int) (mTitleSize * readBookControl.getLineMultiplier() * readBookControl.getParagraphSize() / 2);
     }
 
+    /**
+     * 初始化画笔
+     */
     private void initPaint() {
         Typeface typeface;
         try {
@@ -254,6 +258,9 @@ public abstract class PageLoader {
         mTitlePaint = new TextPaint();
         mTitlePaint.setColor(readBookControl.getTextColor());
         mTitlePaint.setTextSize(mTitleSize);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mTitlePaint.setLetterSpacing(readBookControl.getTextLetterSpacing());
+        }
         mTitlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
         mTitlePaint.setTypeface(Typeface.create(typeface, Typeface.BOLD));
         mTitlePaint.setTextAlign(Paint.Align.CENTER);
@@ -263,6 +270,9 @@ public abstract class PageLoader {
         mTextPaint = new TextPaint();
         mTextPaint.setColor(readBookControl.getTextColor());
         mTextPaint.setTextSize(mTextSize);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mTextPaint.setLetterSpacing(readBookControl.getTextLetterSpacing());
+        }
         int bold = readBookControl.getTextBold() ? Typeface.BOLD : Typeface.NORMAL;
         mTextPaint.setTypeface(Typeface.create(typeface, bold));
         mTextPaint.setAntiAlias(true);
@@ -292,15 +302,7 @@ public abstract class PageLoader {
     public void setTextSize() {
         // 设置文字相关参数
         setUpTextParams();
-
-        // 设置画笔的字体大小
-        mTextPaint.setTextSize(mTextSize);
-        // 设置标题的字体大小
-        mTitlePaint.setTextSize(mTitleSize);
-        mTextEndPaint.setTextSize(mTextEndSize);
-
-        // setupTextInterval
-        setupTextInterval();
+        initPaint();
         skipToChapter(mCurChapterPos, mCurPagePos);
     }
 
@@ -375,13 +377,7 @@ public abstract class PageLoader {
      * 换源结束
      */
     public void changeSourceFinish(BookShelfBean book) {
-        if (book == null) {
-            openChapter(mCurPagePos);
-        } else {
-            bookShelfBean = book;
-            mPageChangeListener.onCategoryFinish(book.getChapterList());
-            skipToChapter(bookShelfBean.getDurChapter(), bookShelfBean.getDurChapterPage());
-        }
+        openChapter(mCurPagePos);
     }
 
     /**
@@ -558,6 +554,13 @@ public abstract class PageLoader {
     }
 
     /**
+     * @return 当前章节所有内容
+     */
+    public String getAllContent() {
+        return getContentStartPage(0);
+    }
+
+    /**
      * @return 本页未读内容
      */
     public String getContent() {
@@ -584,10 +587,9 @@ public abstract class PageLoader {
         if (content != null) {
             s.append(content);
         }
-        if (mCurChapter.getPageSize() > mCurPagePos + 1) {
-            for (int i = mCurPagePos + 1; i < mCurChapter.getPageSize(); i++) {
-                s.append(mCurChapter.getPage(i).getContent());
-            }
+        content = getContentStartPage(mCurPagePos + 1);
+        if (content != null) {
+            s.append(content);
         }
         readTextLength = mCurPagePos > 0 ? mCurChapter.getPageLength(mCurPagePos - 1) : 0;
         if (mPageMode == PageAnimation.Mode.SCROLL) {
@@ -598,6 +600,25 @@ public abstract class PageLoader {
         return s.toString();
     }
 
+    /**
+     * @param page 开始页数
+     * @return 从page页开始的的当前章节所有内容
+     */
+    private String getContentStartPage(int page) {
+        if (mCurChapter == null) return null;
+        if (mCurChapter.getTxtPageList() == null) return null;
+        StringBuilder s = new StringBuilder();
+        if (mCurChapter.getPageSize() > page) {
+            for (int i = page; i < mCurChapter.getPageSize(); i++) {
+                s.append(mCurChapter.getPage(i).getContent());
+            }
+        }
+        return s.toString();
+    }
+
+    /**
+     * @param start 开始朗读字数
+     */
     public void readAloudStart(int start) {
         start = readTextLength + start;
         int x = mCurChapter.getParagraphIndex(start);
@@ -611,6 +632,9 @@ public abstract class PageLoader {
         }
     }
 
+    /**
+     * @param readAloudLength 已朗读字数
+     */
     public void readAloudLength(int readAloudLength) {
         if (mCurChapter == null) return;
         if (mCurChapter.getStatus() != TxtChapter.Status.FINISH) return;
@@ -678,6 +702,9 @@ public abstract class PageLoader {
         resetPageOffset();
     }
 
+    /**
+     * 重置页面
+     */
     private void reSetPage() {
         if (mPageMode == PageAnimation.Mode.SCROLL) {
             resetPageOffset();
