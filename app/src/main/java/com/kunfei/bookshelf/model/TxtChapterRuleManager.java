@@ -1,9 +1,14 @@
 package com.kunfei.bookshelf.model;
 
 import com.kunfei.bookshelf.DbHelper;
+import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.bean.TxtChapterRuleBean;
 import com.kunfei.bookshelf.dao.TxtChapterRuleBeanDao;
+import com.kunfei.bookshelf.utils.GsonUtils;
+import com.kunfei.bookshelf.utils.IOUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +17,7 @@ public class TxtChapterRuleManager {
     public static List<TxtChapterRuleBean> getAll() {
         List<TxtChapterRuleBean> beans = DbHelper.getDaoSession().getTxtChapterRuleBeanDao().loadAll();
         if (beans.isEmpty()) {
-            beans.add(getDefault());
+            return getDefault();
         }
         return beans;
     }
@@ -22,25 +27,35 @@ public class TxtChapterRuleManager {
                 .where(TxtChapterRuleBeanDao.Properties.Enable.eq(true))
                 .list();
         if (beans.isEmpty()) {
-            beans.add(getDefault());
+            return getAll();
         }
         return beans;
     }
 
-    public static List<String> enabledNameList() {
+    public static List<String> enabledRuleList() {
         List<TxtChapterRuleBean> beans = getEnabled();
-        List<String> nameList = new ArrayList<>();
+        List<String> ruleList = new ArrayList<>();
         for (TxtChapterRuleBean chapterRuleBean : beans) {
-            nameList.add(chapterRuleBean.getName());
+            ruleList.add(chapterRuleBean.getRule());
         }
-        return nameList;
+        return ruleList;
     }
 
-    public static TxtChapterRuleBean getDefault() {
-        TxtChapterRuleBean txtChapterRuleBean = new TxtChapterRuleBean();
-        txtChapterRuleBean.setName("默认正则");
-        txtChapterRuleBean.setRule("^(.{0,8})(第)([0-9零一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]{1,10})([章节卷集部篇回场])(.{0,30})$");
-        return txtChapterRuleBean;
+    public static List<TxtChapterRuleBean> getDefault() {
+        String json = null;
+        try {
+            InputStream inputStream = MApplication.getInstance().getAssets().open("txtChapterRule.json");
+            json = IOUtils.toString(inputStream);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        List<TxtChapterRuleBean> ruleBeanList = GsonUtils.parseJArray(json, TxtChapterRuleBean.class);
+        if (ruleBeanList != null) {
+            DbHelper.getDaoSession().getTxtChapterRuleBeanDao().insertOrReplaceInTx(ruleBeanList);
+            return ruleBeanList;
+        }
+        return new ArrayList<>();
     }
 
     public static void del(TxtChapterRuleBean txtChapterRuleBean) {
@@ -61,6 +76,6 @@ public class TxtChapterRuleManager {
     }
 
     public static void save(List<TxtChapterRuleBean> txtChapterRuleBeans) {
-
+        DbHelper.getDaoSession().getTxtChapterRuleBeanDao().insertOrReplaceInTx(txtChapterRuleBeans);
     }
 }
