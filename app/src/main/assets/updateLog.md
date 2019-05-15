@@ -3,6 +3,20 @@
 ### 捐赠里点击红包搜索码可开启高级功能!
 ## 更新日志
 
+**2019/05/15**
+* 搜索页和详情页为同一网址时不再重复获取网页
+* 详情页和目录页为同一网址时不再重复获取网页
+* 优化翻页动画,尝试解决一些手机翻页不变的问题
+* 书源规则增加一些字段,发现规则独立出来
+* 其它一些优化
+
+**2019/05/13**
+* 并行解析多页目录列表,提高解析速度
+* 增加js方法,java.put(key, value) java.get(key)
+* 搜索增加按书源分组
+* 章节绝对url放到访问时再组合,提高解析速度
+* 音频播放结束自动下一章
+
 **2019/05/12**
 * 修复bug
 
@@ -76,21 +90,7 @@
 * 修复设置夜间模式会多次Recreate的问题
 * WebDav恢复时添加存储权限检查
 * 书源调试添加时间戳
-* 自定义js方法
-```renderscript
-//获取网页内容,url支持搜索url规则
-java.ajax(url)
-//base64解码
-java.base64Decoder(string)
-//设置需解析的内容Object
-java.setContent(html)
-//输入规则String获取文本列表List<String>
-java.getStringList(rule)
-//输入规则String获取文本String
-java.getString(rule)
-//输入规则String获取节点列表List<Object>
-java.getElements(ruleStr)
-```
+* 增加自定义js方法
 
 **2019/04/10**
 * 发现规则支持js生成规则文本, \<js>\</js>

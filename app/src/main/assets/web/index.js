@@ -2,11 +2,18 @@
 // 读写Hash值(val未赋值时为读取)
 function hashParam(key, val) {
 	let hashstr = decodeURIComponent(window.location.hash);
-	let regKey = new RegExp(`${key}=(.*?&|.*$)`);
-	let getVal = regKey.test(hashstr) ? hashstr.match(regKey)[1].replace('&', '') : null;
+	let regKey = new RegExp(`${key}=([^&]*)`);
+	let getVal = regKey.test(hashstr) ? hashstr.match(regKey)[1] : null;
 	if (val == undefined) return getVal;
-	if (hashstr == '') window.location.hash = `#${key}=${val}`;
-	window.location.hash = getVal ? hashstr.replace(getVal, val) : `${hashstr.replace(`&${key}=`)}&${key}=${val}`;
+	if (hashstr == '' || hashstr == '#') {
+		window.location.hash = `#${key}=${val}`;
+	}
+	else {
+		if (getVal) window.location.hash = hashstr.replace(getVal, val);
+		else {
+			window.location.hash = hashstr.indexOf(key) > -1 ? hashstr.replace(regKey, `${key}=${val}`) : `${hashstr}&${key}=${val}`;
+		}
+	}
 }
 function addRule(rule) {
 	return `<label for="${rule.bookSourceUrl}"><input type="radio" name="rule" id="${rule.bookSourceUrl}"><div>${rule.bookSourceName}<br>${rule.bookSourceUrl}</div></label>`;
@@ -39,12 +46,21 @@ var RuleJSON = {
 	"bookSourceUrl": "",
 	"loginUrl": "",
 	"ruleFindUrl": "",
+	"ruleFindList": "",
+	"ruleFindName": "",
+	"ruleFindAuthor": "",
+	"ruleFindKind": "",
+	"ruleFindLastChapter": "",
+	"ruleFindIntroduce": "",
+	"ruleFindCoverUrl": "",
+	"ruleFindNoteUrl": "",
 	"ruleSearchUrl": "",
 	"ruleSearchList": "",
 	"ruleSearchName": "",
 	"ruleSearchAuthor": "",
 	"ruleSearchKind": "",
 	"ruleSearchLastChapter": "",
+	"ruleSearchIntroduce": "",
 	"ruleSearchCoverUrl": "",
 	"ruleSearchNoteUrl": "",
 	"ruleBookUrlPattern": "",
@@ -92,7 +108,9 @@ function rule2json() {
 }
 // 将书源对象填充到书源表单
 function json2rule(RuleEditor) {
-	Object.keys(RuleJSON).forEach((key) => { dQuery("#" + key).value = RuleEditor[key] });
+	Object.keys(RuleJSON).forEach((key) => {
+		dQuery("#" + key).value = RuleEditor[key] ? RuleEditor[key] : '';
+	});
 }
 // 缓存规则列表
 var ruleSources = [];
@@ -274,7 +292,6 @@ dQuery('.menu').addEventListener('click', e => {
 	setTimeout(() => { thisNode.setAttribute('class', ''); }, 500);
 });
 dQuery('#DebugKey').addEventListener('keydown', e => {
-	console.log(e.keyCode);
 	if (e.keyCode == 13) {
 		let clickEvent = document.createEvent('MouseEvents');
 		clickEvent.initEvent("click", true, false);
@@ -293,4 +310,90 @@ dQuery('#RuleList').addEventListener('click', e => {
 	if (editRule.bookSourceName == '') editRule.bookSourceName = editRule.bookSourceUrl.replace(/.*?\/\/|\/.*/g, '');
 	setRule(editRule);
 	localStorage.setItem('ruleSources', JSON.stringify(ruleSources));
+});
+// 处理列表按钮事件
+dQuery('.tab3>.titlebar').addEventListener('click', e => {
+	let thisNode = e.target;
+	if (thisNode.nodeName != 'BUTTON') return;
+	switch (thisNode.id) {
+		case 'Import':
+			let fileImport = document.createElement('input');
+			fileImport.type = 'file';
+			fileImport.accept = '.json';
+			fileImport.addEventListener('change', () => {
+				let file = fileImport.files[0];
+				let reader = new FileReader();
+				reader.onloadend = function (evt) {
+					if (evt.target.readyState == FileReader.DONE) {
+						let fileText = evt.target.result;
+						try {
+							let fileJson = JSON.parse(fileText);
+							let newSources = [];
+							newSources.push(...fileJson);
+							if (window.confirm(`如何处理导入的书源?\n"确定": 覆盖当前列表(不会删除APP源)\n"取消": 插入列表尾部(自动忽略重复源)`)) {
+								localStorage.setItem('ruleSources', JSON.stringify(ruleSources = newSources));
+								dQuery('#RuleList').innerHTML = ''
+								ruleSources.forEach(item => {
+									dQuery('#RuleList').innerHTML += addRule(item);
+								});
+							}
+							else {
+								newSources = newSources.filter(item => !JSON.stringify(ruleSources).includes(item.bookSourceUrl));
+								ruleSources.push(...newSources);
+								localStorage.setItem('ruleSources', JSON.stringify(ruleSources));
+								newSources.forEach(item => {
+									dQuery('#RuleList').innerHTML += addRule(item);
+								});
+							}
+							alert(`成功导入 ${newSources.length} 条书源`);
+						}
+						catch (err) {
+							alert(`导入书源文件失败!\n${err}`);
+						}
+					}
+				};
+				reader.readAsText(file);
+			}, false);
+			fileImport.click();
+			break;
+		case 'Export':
+			let fileExport = document.createElement('a');
+			fileExport.download = `Rules${Date().replace(/.*?\s(\d+)\s(\d+)\s(\d+:\d+:\d+).*/, '$2$1$3').replace(/:/g, '')}.json`;
+			let myBlob = new Blob([JSON.stringify(ruleSources, null, 4)], { type: "application/json" });
+			fileExport.href = window.URL.createObjectURL(myBlob);
+			fileExport.click();
+			break;
+		case 'Delete':
+			let selectRule = dQuery('#RuleList input:checked');
+			if (!selectRule) {
+				alert(`没有书源被选中!`);
+				return;
+			}
+			if (confirm(`确定要删除选定书源吗?\n(同时删除APP内书源)`)) {
+				let selectRuleUrl = selectRule.id;
+				let deleteSources = ruleSources.filter(item => item.bookSourceUrl == selectRuleUrl); // 提取待删除的书源
+				let laveSources = ruleSources.filter(item => !(item.bookSourceUrl == selectRuleUrl));  // 提取待留下的书源
+				HttpPost(`/deleteSources`, deleteSources).then(json => {
+					if (json.isSuccess) {
+						let selectNode = document.getElementById(selectRuleUrl).parentNode;
+						selectNode.parentNode.removeChild(selectNode);
+						localStorage.setItem('ruleSources', JSON.stringify(ruleSources = laveSources));
+						if (dQuery('#bookSourceUrl').value == selectRuleUrl) {
+							dQueryAll('.rules textarea').forEach(item => { item.value = '' });
+							todo();
+						}
+						console.log(deleteSources);
+						console.log(`以上书源已删除!`)
+					}
+				}).catch(err => { alert(`删除书源失败,无法连接到「阅读APP」!\n${err}`); });
+			}
+			break;
+		case 'ClrAll':
+			if (confirm(`确定要清空当前书源列表吗?\n(不会删除APP内书源)`)) {
+				localStorage.setItem('ruleSources', JSON.stringify(ruleSources = []));
+				dQuery('#RuleList').innerHTML = ''
+			}
+			break;
+		default:
+	}
 });
