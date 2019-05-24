@@ -19,7 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class NetworkUtil {
+import retrofit2.Response;
+
+public class NetworkUtils {
     public static final Pattern headerPattern = Pattern.compile("@Header:\\{.+?\\}", Pattern.CASE_INSENSITIVE);
     public static final int SUCCESS = 10000;
     public static final int ERROR_CODE_NONET = 10001;
@@ -49,6 +51,15 @@ public class NetworkUtil {
         }
     }
 
+    public static String getUrl(Response response) {
+        okhttp3.Response networkResponse = response.raw().networkResponse();
+        if (networkResponse != null) {
+            return networkResponse.request().url().toString();
+        } else {
+            return response.raw().request().url().toString();
+        }
+    }
+
     /**
      * 获取绝对地址
      */
@@ -62,6 +73,26 @@ public class NetworkUtil {
         try {
             URL absoluteUrl = new URL(baseURL);
             URL parseUrl = new URL(absoluteUrl, relativePath);
+            relativePath = parseUrl.toString();
+            if (header != null) {
+                relativePath = header + relativePath;
+            }
+            return relativePath;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return relativePath;
+    }
+
+    public static String getAbsoluteURL(URL baseURL, String relativePath) {
+        if (baseURL == null) return relativePath;
+        String header = null;
+        if (StringUtils.startWithIgnoreCase(relativePath, "@header:")) {
+            header = relativePath.substring(0, relativePath.indexOf("}") + 1);
+            relativePath = relativePath.substring(header.length());
+        }
+        try {
+            URL parseUrl = new URL(baseURL, relativePath);
             relativePath = parseUrl.toString();
             if (header != null) {
                 relativePath = header + relativePath;

@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -34,16 +33,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
-import com.google.zxing.MultiFormatWriter;
-import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.kunfei.basemvplib.BitIntentDataManager;
 import com.kunfei.bookshelf.BuildConfig;
 import com.kunfei.bookshelf.R;
 import com.kunfei.bookshelf.base.MBaseActivity;
 import com.kunfei.bookshelf.base.observer.MyObserver;
+import com.kunfei.bookshelf.base.observer.MySingleObserver;
 import com.kunfei.bookshelf.bean.BookSourceBean;
 import com.kunfei.bookshelf.constant.BookType;
 import com.kunfei.bookshelf.model.BookSourceManager;
@@ -51,7 +48,6 @@ import com.kunfei.bookshelf.presenter.SourceEditPresenter;
 import com.kunfei.bookshelf.presenter.contract.SourceEditContract;
 import com.kunfei.bookshelf.service.ShareService;
 import com.kunfei.bookshelf.utils.RxUtils;
-import com.kunfei.bookshelf.utils.ScreenUtils;
 import com.kunfei.bookshelf.utils.SoftInputUtil;
 import com.kunfei.bookshelf.utils.theme.ThemeStore;
 import com.kunfei.bookshelf.view.adapter.SourceEditAdapter;
@@ -62,17 +58,15 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import cn.bingoogolapple.qrcode.zxing.QRCodeEncoder;
 import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.reactivex.SingleObserver;
 import io.reactivex.SingleOnSubscribe;
-import io.reactivex.disposables.Disposable;
 
 import static android.text.TextUtils.isEmpty;
 
@@ -113,11 +107,7 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
 
     public static void startThis(Object object, BookSourceBean sourceBean) {
         String key = String.valueOf(System.currentTimeMillis());
-        try {
-            BitIntentDataManager.getInstance().putData(key, sourceBean.clone());
-        } catch (CloneNotSupportedException e) {
-            BitIntentDataManager.getInstance().putData(key, sourceBean);
-        }
+        BitIntentDataManager.getInstance().putData(key, sourceBean.clone());
         if (object instanceof Activity) {
             Activity activity = (Activity) object;
             Intent intent = new Intent(activity, SourceEditActivity.class);
@@ -210,6 +200,7 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
                 tvEditFind.setText(R.string.back);
             }
             showFind = !showFind;
+            recyclerView.scrollToPosition(0);
         });
     }
 
@@ -231,6 +222,65 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
                 .setPrettyPrinting()
                 .create();
         return gson.toJson(getBookSource());
+    }
+
+    @Override
+    public void setText(BookSourceBean bookSourceBean) {
+        sourceEditList.clear();
+        findEditList.clear();
+        adapter.notifyDataSetChanged();
+        sourceEditList.add(new SourceEdit("bookSourceUrl", bookSourceBean.getBookSourceUrl(), R.string.book_source_url));
+        sourceEditList.add(new SourceEdit("bookSourceName", bookSourceBean.getBookSourceName(), R.string.book_source_name));
+        sourceEditList.add(new SourceEdit("bookSourceGroup", bookSourceBean.getBookSourceGroup(), R.string.book_source_group));
+        sourceEditList.add(new SourceEdit("loginUrl", bookSourceBean.getLoginUrl(), R.string.book_source_login_url));
+        //搜索
+        sourceEditList.add(new SourceEdit("ruleSearchUrl", bookSourceBean.getRuleSearchUrl(), R.string.rule_search_url));
+        sourceEditList.add(new SourceEdit("ruleSearchList", bookSourceBean.getRuleSearchList(), R.string.rule_search_list));
+        sourceEditList.add(new SourceEdit("ruleSearchName", bookSourceBean.getRuleSearchName(), R.string.rule_search_name));
+        sourceEditList.add(new SourceEdit("ruleSearchAuthor", bookSourceBean.getRuleSearchAuthor(), R.string.rule_search_author));
+        sourceEditList.add(new SourceEdit("ruleSearchKind", bookSourceBean.getRuleSearchKind(), R.string.rule_search_kind));
+        sourceEditList.add(new SourceEdit("ruleSearchLastChapter", bookSourceBean.getRuleSearchLastChapter(), R.string.rule_search_last_chapter));
+        sourceEditList.add(new SourceEdit("ruleSearchIntroduce", bookSourceBean.getRuleSearchIntroduce(), R.string.rule_search_introduce));
+        sourceEditList.add(new SourceEdit("ruleSearchCoverUrl", bookSourceBean.getRuleSearchCoverUrl(), R.string.rule_search_cover_url));
+        sourceEditList.add(new SourceEdit("ruleSearchNoteUrl", bookSourceBean.getRuleSearchNoteUrl(), R.string.rule_search_note_url));
+        //详情页
+        sourceEditList.add(new SourceEdit("ruleBookUrlPattern", bookSourceBean.getRuleBookUrlPattern(), R.string.book_url_pattern));
+        sourceEditList.add(new SourceEdit("ruleBookInfoInit", bookSourceBean.getRuleBookInfoInit(), R.string.rule_book_info_init));
+        sourceEditList.add(new SourceEdit("ruleBookName", bookSourceBean.getRuleBookName(), R.string.rule_book_name));
+        sourceEditList.add(new SourceEdit("ruleBookAuthor", bookSourceBean.getRuleBookAuthor(), R.string.rule_book_author));
+        sourceEditList.add(new SourceEdit("ruleCoverUrl", bookSourceBean.getRuleCoverUrl(), R.string.rule_cover_url));
+        sourceEditList.add(new SourceEdit("ruleIntroduce", bookSourceBean.getRuleIntroduce(), R.string.rule_introduce));
+        sourceEditList.add(new SourceEdit("ruleBookKind", bookSourceBean.getRuleBookKind(), R.string.rule_book_kind));
+        sourceEditList.add(new SourceEdit("ruleBookLastChapter", bookSourceBean.getRuleBookLastChapter(), R.string.rule_book_last_chapter));
+        sourceEditList.add(new SourceEdit("ruleChapterUrl", bookSourceBean.getRuleChapterUrl(), R.string.rule_chapter_list_url));
+        //目录页
+        sourceEditList.add(new SourceEdit("ruleChapterUrlNext", bookSourceBean.getRuleChapterUrlNext(), R.string.rule_chapter_list_url_next));
+        sourceEditList.add(new SourceEdit("ruleChapterList", bookSourceBean.getRuleChapterList(), R.string.rule_chapter_list));
+        sourceEditList.add(new SourceEdit("ruleChapterName", bookSourceBean.getRuleChapterName(), R.string.rule_chapter_name));
+        sourceEditList.add(new SourceEdit("ruleContentUrl", bookSourceBean.getRuleContentUrl(), R.string.rule_content_url));
+        //正文页
+        sourceEditList.add(new SourceEdit("ruleContentUrlNext", bookSourceBean.getRuleContentUrlNext(), R.string.rule_content_url_next));
+        sourceEditList.add(new SourceEdit("ruleBookContent", bookSourceBean.getRuleBookContent(), R.string.rule_book_content));
+        sourceEditList.add(new SourceEdit("httpUserAgent", bookSourceBean.getHttpUserAgent(), R.string.source_user_agent));
+
+        //发现
+        findEditList.add(new SourceEdit("ruleFindUrl", bookSourceBean.getRuleFindUrl(), R.string.rule_find_url));
+        findEditList.add(new SourceEdit("ruleFindList", bookSourceBean.getRuleFindList(), R.string.rule_find_list));
+        findEditList.add(new SourceEdit("ruleFindName", bookSourceBean.getRuleFindName(), R.string.rule_find_name));
+        findEditList.add(new SourceEdit("ruleFindAuthor", bookSourceBean.getRuleFindAuthor(), R.string.rule_find_author));
+        findEditList.add(new SourceEdit("ruleFindKind", bookSourceBean.getRuleFindKind(), R.string.rule_find_kind));
+        findEditList.add(new SourceEdit("ruleFindIntroduce", bookSourceBean.getRuleFindIntroduce(), R.string.rule_find_introduce));
+        findEditList.add(new SourceEdit("ruleFindLastChapter", bookSourceBean.getRuleFindLastChapter(), R.string.rule_find_last_chapter));
+        findEditList.add(new SourceEdit("ruleFindCoverUrl", bookSourceBean.getRuleFindCoverUrl(), R.string.rule_find_cover_url));
+        findEditList.add(new SourceEdit("ruleFindNoteUrl", bookSourceBean.getRuleFindNoteUrl(), R.string.rule_find_note_url));
+
+        if (showFind) {
+            adapter.reSetData(findEditList);
+        } else {
+            adapter.reSetData(sourceEditList);
+        }
+        cbIsAudio.setChecked(Objects.equals(bookSourceBean.getBookSourceType(), BookType.AUDIO));
+        cbIsEnable.setChecked(bookSourceBean.getEnable());
     }
 
     private void scanBookSource() {
@@ -368,100 +418,22 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
         return bookSourceBeanN;
     }
 
-    @Override
-    public void setText(BookSourceBean bookSourceBean) {
-        sourceEditList.clear();
-        adapter.notifyDataSetChanged();
-        sourceEditList.add(new SourceEdit("bookSourceUrl", bookSourceBean.getBookSourceUrl(), R.string.book_source_url));
-        sourceEditList.add(new SourceEdit("bookSourceName", bookSourceBean.getBookSourceName(), R.string.book_source_name));
-        sourceEditList.add(new SourceEdit("bookSourceGroup", bookSourceBean.getBookSourceGroup(), R.string.book_source_group));
-        sourceEditList.add(new SourceEdit("loginUrl", bookSourceBean.getLoginUrl(), R.string.book_source_login_url));
-        //搜索
-        sourceEditList.add(new SourceEdit("ruleSearchUrl", bookSourceBean.getRuleSearchUrl(), R.string.rule_search_url));
-        sourceEditList.add(new SourceEdit("ruleSearchList", bookSourceBean.getRuleSearchList(), R.string.rule_search_list));
-        sourceEditList.add(new SourceEdit("ruleSearchName", bookSourceBean.getRuleSearchName(), R.string.rule_search_name));
-        sourceEditList.add(new SourceEdit("ruleSearchAuthor", bookSourceBean.getRuleSearchAuthor(), R.string.rule_search_author));
-        sourceEditList.add(new SourceEdit("ruleSearchKind", bookSourceBean.getRuleSearchKind(), R.string.rule_search_kind));
-        sourceEditList.add(new SourceEdit("ruleSearchIntroduce", bookSourceBean.getRuleSearchIntroduce(), R.string.rule_search_introduce));
-        sourceEditList.add(new SourceEdit("ruleSearchLastChapter", bookSourceBean.getRuleSearchLastChapter(), R.string.rule_search_last_chapter));
-        sourceEditList.add(new SourceEdit("ruleSearchCoverUrl", bookSourceBean.getRuleSearchCoverUrl(), R.string.rule_search_cover_url));
-        sourceEditList.add(new SourceEdit("ruleSearchNoteUrl", bookSourceBean.getRuleSearchNoteUrl(), R.string.rule_search_note_url));
-        //详情页
-        sourceEditList.add(new SourceEdit("ruleBookUrlPattern", bookSourceBean.getRuleBookUrlPattern(), R.string.book_url_pattern));
-        sourceEditList.add(new SourceEdit("ruleBookInfoInit", bookSourceBean.getRuleBookInfoInit(), R.string.rule_book_info_init));
-        sourceEditList.add(new SourceEdit("ruleBookName", bookSourceBean.getRuleBookName(), R.string.rule_book_name));
-        sourceEditList.add(new SourceEdit("ruleBookAuthor", bookSourceBean.getRuleBookAuthor(), R.string.rule_book_author));
-        sourceEditList.add(new SourceEdit("ruleCoverUrl", bookSourceBean.getRuleCoverUrl(), R.string.rule_cover_url));
-        sourceEditList.add(new SourceEdit("ruleIntroduce", bookSourceBean.getRuleIntroduce(), R.string.rule_introduce));
-        sourceEditList.add(new SourceEdit("ruleBookKind", bookSourceBean.getRuleBookKind(), R.string.rule_book_kind));
-        sourceEditList.add(new SourceEdit("ruleBookLastChapter", bookSourceBean.getRuleBookLastChapter(), R.string.rule_book_last_chapter));
-        sourceEditList.add(new SourceEdit("ruleChapterUrl", bookSourceBean.getRuleChapterUrl(), R.string.rule_chapter_list_url));
-        //目录页
-        sourceEditList.add(new SourceEdit("ruleChapterUrlNext", bookSourceBean.getRuleChapterUrlNext(), R.string.rule_chapter_list_url_next));
-        sourceEditList.add(new SourceEdit("ruleChapterList", bookSourceBean.getRuleChapterList(), R.string.rule_chapter_list));
-        sourceEditList.add(new SourceEdit("ruleChapterName", bookSourceBean.getRuleChapterName(), R.string.rule_chapter_name));
-        sourceEditList.add(new SourceEdit("ruleContentUrl", bookSourceBean.getRuleContentUrl(), R.string.rule_content_url));
-        //正文页
-        sourceEditList.add(new SourceEdit("ruleContentUrlNext", bookSourceBean.getRuleChapterUrlNext(), R.string.rule_content_url_next));
-        sourceEditList.add(new SourceEdit("ruleBookContent", bookSourceBean.getRuleBookContent(), R.string.rule_book_content));
-        sourceEditList.add(new SourceEdit("httpUserAgent", bookSourceBean.getHttpUserAgent(), R.string.source_user_agent));
-
-        //发现
-        findEditList.add(new SourceEdit("ruleFindUrl", bookSourceBean.getRuleFindUrl(), R.string.rule_find_url));
-        findEditList.add(new SourceEdit("ruleFindList", bookSourceBean.getRuleFindList(), R.string.rule_find_list));
-        findEditList.add(new SourceEdit("ruleFindName", bookSourceBean.getRuleFindName(), R.string.rule_find_name));
-        findEditList.add(new SourceEdit("ruleFindAuthor", bookSourceBean.getRuleFindAuthor(), R.string.rule_find_author));
-        findEditList.add(new SourceEdit("ruleFindKind", bookSourceBean.getRuleFindKind(), R.string.rule_find_kind));
-        findEditList.add(new SourceEdit("ruleFindIntroduce", bookSourceBean.getRuleFindIntroduce(), R.string.rule_find_introduce));
-        findEditList.add(new SourceEdit("ruleFindLastChapter", bookSourceBean.getRuleFindLastChapter(), R.string.rule_find_last_chapter));
-        findEditList.add(new SourceEdit("ruleFindCoverUrl", bookSourceBean.getRuleFindCoverUrl(), R.string.rule_find_cover_url));
-        findEditList.add(new SourceEdit("ruleFindNoteUrl", bookSourceBean.getRuleFindNoteUrl(), R.string.rule_find_note_url));
-
-        if (showFind) {
-            adapter.reSetData(findEditList);
-        } else {
-            adapter.reSetData(sourceEditList);
-        }
-        cbIsAudio.setChecked(Objects.equals(bookSourceBean.getBookSourceType(), BookType.AUDIO));
-        cbIsEnable.setChecked(bookSourceBean.getEnable());
-    }
-
     @SuppressLint("SetWorldReadable")
-    @SuppressWarnings("unchecked")
     private void shareBookSource() {
         Single.create((SingleOnSubscribe<Bitmap>) emitter -> {
-            BitMatrix result;
-            MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
-            try {
-                Hashtable<EncodeHintType, Object> hst = new Hashtable();
-                hst.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-                hst.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
-                result = multiFormatWriter.encode(getBookSourceStr(), BarcodeFormat.QR_CODE, 600, 600, hst);
-                int[] pixels = new int[600 * 600];
-                for (int y = 0; y < 600; y++) {
-                    for (int x = 0; x < 600; x++) {
-                        if (result.get(x, y)) {
-                            pixels[y * 600 + x] = Color.BLACK;
-                        } else {
-                            pixels[y * 600 + x] = Color.WHITE;
-                        }
-                    }
-                }
-                Bitmap bitmap = Bitmap.createBitmap(600, 600, Bitmap.Config.ARGB_8888);
-                bitmap.setPixels(pixels, 0, 600, 0, 0, 600, 600);
-                emitter.onSuccess(bitmap);
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
+            QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
+            Bitmap bitmap = QRCodeEncoder.syncEncodeQRCode(getBookSourceStr(), 600);
+            QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            emitter.onSuccess(bitmap);
         }).compose(RxUtils::toSimpleSingle)
-                .subscribe(new SingleObserver<Bitmap>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
+                .subscribe(new MySingleObserver<Bitmap>() {
 
                     @Override
                     public void onSuccess(Bitmap bitmap) {
+                        if (bitmap == null) {
+                            toast("书源文字太多,生成二维码失败");
+                            return;
+                        }
                         try {
                             File file = new File(SourceEditActivity.this.getExternalCacheDir(), "bookSource.png");
                             FileOutputStream fOut = new FileOutputStream(file);
@@ -479,11 +451,6 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
                         } catch (Exception e) {
                             toast(e.getLocalizedMessage());
                         }
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        toast(e.getLocalizedMessage());
                     }
                 });
 
@@ -668,19 +635,13 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
         }
     }
 
-    private void showKeyboardTopPopupWindow(int x, int y) {
+    private void showKeyboardTopPopupWindow() {
+        if (isFinishing()) return;
         if (mSoftKeyboardTool != null && mSoftKeyboardTool.isShowing()) {
-            updateKeyboardTopPopupWindow(x, y); //可能是输入法切换了输入模式，高度会变化（比如切换为语音输入）
             return;
         }
         if (mSoftKeyboardTool != null & !this.isFinishing()) {
-            mSoftKeyboardTool.showAtLocation(llContent, Gravity.BOTTOM, x, y);
-        }
-    }
-
-    private void updateKeyboardTopPopupWindow(int x, int y) {
-        if (mSoftKeyboardTool != null && mSoftKeyboardTool.isShowing()) {
-            mSoftKeyboardTool.update(x, y, mSoftKeyboardTool.getWidth(), mSoftKeyboardTool.getHeight());
+            mSoftKeyboardTool.showAtLocation(llContent, Gravity.BOTTOM, 0, 0);
         }
     }
 
@@ -701,14 +662,14 @@ public class SourceEditActivity extends MBaseActivity<SourceEditContract.Present
             boolean preShowing = mIsSoftKeyBoardShowing;
             if (Math.abs(keyboardHeight) > screenHeight / 5) {
                 mIsSoftKeyBoardShowing = true; // 超过屏幕五分之一则表示弹出了输入法
-                showKeyboardTopPopupWindow(SoftInputUtil.getScreenWidth(SourceEditActivity.this) / 2, keyboardHeight);
-                llContent.setPadding(0, ScreenUtils.getStatusBarHeight(), 0, keyboardHeight + 100);
+                recyclerView.setPadding(0, 0, 0, 100);
+                showKeyboardTopPopupWindow();
             } else {
+                mIsSoftKeyBoardShowing = false;
+                recyclerView.setPadding(0, 0, 0, 0);
                 if (preShowing) {
                     closePopupWindow();
                 }
-                mIsSoftKeyBoardShowing = false;
-                llContent.setPadding(0, ScreenUtils.getStatusBarHeight(), 0, 0);
             }
         }
     }

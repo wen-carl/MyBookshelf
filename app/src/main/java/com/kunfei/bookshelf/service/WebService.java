@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
@@ -16,7 +15,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
-import com.kunfei.bookshelf.utils.NetworkUtil;
+import com.kunfei.bookshelf.utils.NetworkUtils;
 import com.kunfei.bookshelf.web.HttpServer;
 import com.kunfei.bookshelf.web.WebSocketServer;
 
@@ -42,14 +41,6 @@ public class WebService extends Service {
             Intent intent = new Intent(activity, WebService.class);
             intent.setAction(ActionStartService);
             activity.startService(intent);
-        }
-    }
-
-    public static void stopThis(Context context) {
-        if (isRunning) {
-            Intent intent = new Intent(context, WebService.class);
-            intent.setAction(ActionDoneService);
-            context.startService(intent);
         }
     }
 
@@ -87,7 +78,7 @@ public class WebService extends Service {
         int port = getPort();
         httpServer = new HttpServer(port);
         webSocketServer = new WebSocketServer(port + 1);
-        InetAddress inetAddress = NetworkUtil.getLocalIPAddress();
+        InetAddress inetAddress = NetworkUtils.getLocalIPAddress();
         if (inetAddress != null) {
             try {
                 httpServer.start();
@@ -133,7 +124,7 @@ public class WebService extends Service {
      */
     private void updateNotification(String content) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, MApplication.channelIdWeb)
-                .setSmallIcon(R.drawable.ic_speaker_phone_black_24dp)
+                .setSmallIcon(R.drawable.ic_web_service_noti)
                 .setOngoing(true)
                 .setContentTitle(getString(R.string.web_service))
                 .setContentText(content);

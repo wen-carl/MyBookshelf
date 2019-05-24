@@ -13,9 +13,11 @@ import com.kunfei.basemvplib.BasePresenterImpl;
 import com.kunfei.basemvplib.BitIntentDataManager;
 import com.kunfei.basemvplib.impl.IView;
 import com.kunfei.bookshelf.base.observer.MyObserver;
+import com.kunfei.bookshelf.bean.BookChapterBean;
 import com.kunfei.bookshelf.bean.BookShelfBean;
 import com.kunfei.bookshelf.bean.BookSourceBean;
 import com.kunfei.bookshelf.bean.SearchBookBean;
+import com.kunfei.bookshelf.bean.TwoDataBean;
 import com.kunfei.bookshelf.constant.RxBusTag;
 import com.kunfei.bookshelf.help.BookshelfHelp;
 import com.kunfei.bookshelf.help.ChangeSourceHelp;
@@ -25,9 +27,10 @@ import com.kunfei.bookshelf.model.WebBookModel;
 import com.kunfei.bookshelf.presenter.contract.BookDetailContract;
 import com.kunfei.bookshelf.utils.RxUtils;
 
+import java.util.List;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
-import io.reactivex.Observer;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 
@@ -38,6 +41,7 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
     private int openFrom;
     private SearchBookBean searchBook;
     private BookShelfBean bookShelf;
+    private List<BookChapterBean> chapterBeanList;
     private Boolean inBookShelf = false;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
@@ -76,42 +80,46 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
         bookShelf = BookshelfHelp.getBookFromSearchBook(searchBookBean);
     }
 
+    @Override
     public Boolean getInBookShelf() {
         return inBookShelf;
     }
 
+    @Override
     public int getOpenFrom() {
         return openFrom;
     }
 
+    @Override
     public SearchBookBean getSearchBook() {
         return searchBook;
     }
 
+    @Override
     public BookShelfBean getBookShelf() {
         return bookShelf;
     }
 
     @Override
+    public List<BookChapterBean> getChapterList() {
+        return chapterBeanList;
+    }
+
+    @Override
     public void getBookShelfInfo() {
+        if (BookShelfBean.LOCAL_TAG.equals(bookShelf.getTag())) return;
         WebBookModel.getInstance().getBookInfo(bookShelf)
                 .flatMap(bookShelfBean -> WebBookModel.getInstance().getChapterList(bookShelfBean))
                 .compose(RxUtils::toSimpleSingle)
-                .subscribe(new Observer<BookShelfBean>() {
+                .subscribe(new MyObserver<List<BookChapterBean>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
                         compositeDisposable.add(d);
                     }
 
                     @Override
-                    public void onNext(BookShelfBean bookShelfResult) {
-                        if (openFrom == FROM_BOOKSHELF && bookShelf != null) {
-                            int durChapter = bookShelf.getDurChapter();
-                            bookShelf = bookShelfResult;
-                            bookShelf.setDurChapter(durChapter);
-                        } else {
-                            bookShelf = bookShelfResult;
-                        }
+                    public void onNext(List<BookChapterBean> bookChapterBeans) {
+                        chapterBeanList = bookChapterBeans;
                         mView.updateView();
                     }
 
@@ -120,11 +128,6 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
                         e.printStackTrace();
                         mView.toast(e.getLocalizedMessage());
                         mView.getBookShelfError();
-                    }
-
-                    @Override
-                    public void onComplete() {
-
                     }
                 });
     }
@@ -139,7 +142,7 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
                 e.onNext(true);
                 e.onComplete();
             }).compose(RxUtils::toSimpleSingle)
-                    .subscribe(new Observer<Boolean>() {
+                    .subscribe(new MyObserver<Boolean>() {
                         @Override
                         public void onSubscribe(Disposable d) {
                             compositeDisposable.add(d);
@@ -160,11 +163,6 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
                             e.printStackTrace();
                             mView.toast("放入书架失败!");
                         }
-
-                        @Override
-                        public void onComplete() {
-
-                        }
                     });
         }
     }
@@ -179,7 +177,7 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
                 e.onNext(true);
                 e.onComplete();
             }).compose(RxUtils::toSimpleSingle)
-                    .subscribe(new Observer<Boolean>() {
+                    .subscribe(new MyObserver<Boolean>() {
                         @Override
                         public void onSubscribe(Disposable d) {
                             compositeDisposable.add(d);
@@ -200,11 +198,6 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
                             e.printStackTrace();
                             mView.toast("删除书籍失败！");
                         }
-
-                        @Override
-                        public void onComplete() {
-
-                        }
                     });
         }
     }
@@ -215,12 +208,13 @@ public class BookDetailPresenter extends BasePresenterImpl<BookDetailContract.Vi
     @Override
     public void changeBookSource(SearchBookBean searchBookBean) {
         ChangeSourceHelp.changeBookSource(searchBookBean, bookShelf)
-                .subscribe(new MyObserver<BookShelfBean>() {
+                .subscribe(new MyObserver<TwoDataBean<BookShelfBean, List<BookChapterBean>>>() {
                     @Override
-                    public void onNext(BookShelfBean value) {
+                    public void onNext(TwoDataBean<BookShelfBean, List<BookChapterBean>> value) {
                         RxBus.get().post(RxBusTag.HAD_REMOVE_BOOK, bookShelf);
                         RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value);
-                        bookShelf = value;
+                        bookShelf = value.getData1();
+                        chapterBeanList = value.getData2();
                         mView.updateView();
                         String tag = bookShelf.getTag();
                         try {

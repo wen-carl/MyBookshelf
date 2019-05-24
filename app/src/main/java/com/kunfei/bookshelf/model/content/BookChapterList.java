@@ -5,9 +5,9 @@ import android.text.TextUtils;
 import com.kunfei.bookshelf.MApplication;
 import com.kunfei.bookshelf.R;
 import com.kunfei.bookshelf.base.BaseModelImpl;
+import com.kunfei.bookshelf.bean.BookChapterBean;
 import com.kunfei.bookshelf.bean.BookShelfBean;
 import com.kunfei.bookshelf.bean.BookSourceBean;
-import com.kunfei.bookshelf.bean.ChapterListBean;
 import com.kunfei.bookshelf.bean.WebChapterBean;
 import com.kunfei.bookshelf.model.analyzeRule.AnalyzeRule;
 import com.kunfei.bookshelf.model.analyzeRule.AnalyzeUrl;
@@ -33,7 +33,6 @@ import retrofit2.Response;
 public class BookChapterList {
     private String tag;
     private BookSourceBean bookSourceBean;
-    private AnalyzeRule analyzer;
     private List<WebChapterBean> webChapterBeans;
     private boolean dx = false;
     private boolean analyzeNextUrl;
@@ -46,7 +45,7 @@ public class BookChapterList {
         this.analyzeNextUrl = analyzeNextUrl;
     }
 
-    public Observable<List<ChapterListBean>> analyzeChapterList(final String s, final BookShelfBean bookShelfBean, Map<String, String> headerMap) {
+    public Observable<List<BookChapterBean>> analyzeChapterList(final String s, final BookShelfBean bookShelfBean, Map<String, String> headerMap) {
         return Observable.create(e -> {
             if (TextUtils.isEmpty(s)) {
                 e.onError(new Throwable(MApplication.getInstance().getString(R.string.get_chapter_list_error) + bookShelfBean.getBookInfoBean().getChapterUrl()));
@@ -56,15 +55,15 @@ public class BookChapterList {
                 Debug.printLog(tag, "└" + bookShelfBean.getBookInfoBean().getChapterUrl(), analyzeNextUrl);
             }
             bookShelfBean.setTag(tag);
-            analyzer = new AnalyzeRule(bookShelfBean);
+            AnalyzeRule analyzer = new AnalyzeRule(bookShelfBean);
             String ruleChapterList = bookSourceBean.getRuleChapterList();
             if (ruleChapterList != null && ruleChapterList.startsWith("-")) {
                 dx = true;
                 ruleChapterList = ruleChapterList.substring(1);
             }
             chapterListUrl = bookShelfBean.getBookInfoBean().getChapterUrl();
-            WebChapterBean webChapterBean = analyzeChapterList(s, chapterListUrl, ruleChapterList, analyzeNextUrl);
-            final List<ChapterListBean> chapterList = webChapterBean.getData();
+            WebChapterBean webChapterBean = analyzeChapterList(s, chapterListUrl, ruleChapterList, analyzeNextUrl, analyzer);
+            final List<BookChapterBean> chapterList = webChapterBean.getData();
 
             final List<String> chapterUrlS = new ArrayList<>(webChapterBean.getNextUrlList());
             if (chapterUrlS.isEmpty() || !analyzeNextUrl) {
@@ -84,7 +83,7 @@ public class BookChapterList {
                         Response<String> response = BaseModelImpl.getInstance().getResponseO(analyzeUrl)
                                 .blockingFirst();
                         body = response.body();
-                        webChapterBean = analyzeChapterList(body, chapterUrlS.get(0), ruleChapterList, false);
+                        webChapterBean = analyzeChapterList(body, chapterUrlS.get(0), ruleChapterList, false, analyzer);
                         chapterList.addAll(webChapterBean.getData());
                         chapterUrlS.clear();
                         chapterUrlS.addAll(webChapterBean.getNextUrlList());
@@ -109,7 +108,7 @@ public class BookChapterList {
                     }
 
                     @Override
-                    public void analyzeFinish(WebChapterBean bean, List<ChapterListBean> chapterListBeans) {
+                    public void analyzeFinish(WebChapterBean bean, List<BookChapterBean> chapterListBeans) {
                         if (nextUrlFinish(bean, chapterListBeans)) {
                             for (WebChapterBean chapterBean : webChapterBeans) {
                                 chapterList.addAll(chapterBean.getData());
@@ -140,20 +139,20 @@ public class BookChapterList {
         });
     }
 
-    private synchronized boolean nextUrlFinish(WebChapterBean webChapterBean, List<ChapterListBean> chapterListBeans) {
-        webChapterBean.setData(chapterListBeans);
+    private synchronized boolean nextUrlFinish(WebChapterBean webChapterBean, List<BookChapterBean> bookChapterBeans) {
+        webChapterBean.setData(bookChapterBeans);
         for (WebChapterBean bean : webChapterBeans) {
             if (bean.noData()) return false;
         }
         return true;
     }
 
-    private void finish(List<ChapterListBean> chapterList, Emitter<List<ChapterListBean>> emitter) {
+    private void finish(List<BookChapterBean> chapterList, Emitter<List<BookChapterBean>> emitter) {
         //去除重复,保留后面的,先倒序,从后面往前判断
         if (!dx) {
             Collections.reverse(chapterList);
         }
-        LinkedHashSet<ChapterListBean> lh = new LinkedHashSet<>(chapterList);
+        LinkedHashSet<BookChapterBean> lh = new LinkedHashSet<>(chapterList);
         chapterList = new ArrayList<>(lh);
         Collections.reverse(chapterList);
         Debug.printLog(tag, "-目录解析完成", analyzeNextUrl);
@@ -161,7 +160,8 @@ public class BookChapterList {
         emitter.onComplete();
     }
 
-    private WebChapterBean analyzeChapterList(String s, String chapterUrl, String ruleChapterList, boolean printLog) throws Exception {
+    private WebChapterBean analyzeChapterList(String s, String chapterUrl, String ruleChapterList,
+                                              boolean printLog, AnalyzeRule analyzer) throws Exception {
         List<String> nextUrlList = new ArrayList<>();
         analyzer.setContent(s, chapterUrl);
         if (!TextUtils.isEmpty(bookSourceBean.getRuleChapterUrlNext()) && analyzeNextUrl) {
@@ -174,16 +174,12 @@ public class BookChapterList {
             Debug.printLog(tag, "└" + nextUrlList.toString(), printLog);
         }
 
-        List<ChapterListBean> chapterBeans = new ArrayList<>();
+        List<BookChapterBean> chapterBeans = new ArrayList<>();
         Debug.printLog(tag, "┌解析目录列表", printLog);
         // 仅使用java正则表达式提取目录列表
         if (ruleChapterList.startsWith(":")) {
             ruleChapterList = ruleChapterList.substring(1);
-            chapterBeans = regexChapter(s, ruleChapterList.split("&&"), 0,
-                    bookSourceBean.getRuleChapterName(),
-                    bookSourceBean.getRuleContentUrl(),
-                    chapterBeans
-            );
+            chapterBeans = regexChapter(s, ruleChapterList.split("&&"), 0, analyzer);
             if (chapterBeans.size() == 0) {
                 Debug.printLog(tag, "└找到 0 个章节", printLog);
                 return new WebChapterBean(chapterBeans, new LinkedHashSet<>(nextUrlList));
@@ -227,7 +223,7 @@ public class BookChapterList {
             }
         }
         Debug.printLog(tag, "└找到 " + chapterBeans.size() + " 个章节", printLog);
-        ChapterListBean firstChapter = chapterBeans.get(0);
+        BookChapterBean firstChapter = chapterBeans.get(0);
         Debug.printLog(tag, "┌获取章节名称", printLog);
         Debug.printLog(tag, "└" + firstChapter.getDurChapterName(), printLog);
         Debug.printLog(tag, "┌获取章节网址", printLog);
@@ -235,20 +231,21 @@ public class BookChapterList {
         return new WebChapterBean(chapterBeans, new LinkedHashSet<>(nextUrlList));
     }
 
-    private void addChapter(final List<ChapterListBean> chapterBeans, String name, String link) {
+    private void addChapter(final List<BookChapterBean> chapterBeans, String name, String link) {
         if (TextUtils.isEmpty(name)) return;
         if (TextUtils.isEmpty(link)) link = chapterListUrl;
-        chapterBeans.add(new ChapterListBean(tag, name, link));
+        chapterBeans.add(new BookChapterBean(tag, name, link));
     }
 
-    // 纯java模式正则表达式获取目录列表
-    private List<ChapterListBean> regexChapter(String str, String[] regex, int index,
-                                               String nameRule, String linkRule,
-                                               List<ChapterListBean> chapterBeans) {
+    // region 纯java模式正则表达式获取目录列表
+    private List<BookChapterBean> regexChapter(String str, String[] regex, int index, AnalyzeRule analyzer) {
         Matcher m = Pattern.compile(regex[index]).matcher(str);
         if (index + 1 == regex.length) {
-            String baseUrl = "";
             int vipGroup = 0, nameGroup = 0, linkGroup = 0;
+            String baseUrl = "";
+            List<BookChapterBean> chapterBeans = new ArrayList<>();
+            String nameRule = bookSourceBean.getRuleChapterName();
+            String linkRule = bookSourceBean.getRuleContentUrl();
             // 分离标题正则参数
             Matcher nameMatcher = Pattern.compile("((?<=\\$)\\d)?\\$(\\d$)").matcher(nameRule);
             while (nameMatcher.find()){
@@ -261,7 +258,7 @@ public class BookChapterList {
                 baseUrl = analyzer.replaceGet(linkMatcher.group(1));
                 linkGroup = Integer.parseInt(linkMatcher.group(2));
             }
-            // 提取目录信息
+            // 提取目录列表信息
             if (vipGroup == 0){
                 while (m.find()) {
                     addChapter(chapterBeans,
@@ -282,7 +279,8 @@ public class BookChapterList {
         } else {
             StringBuilder result = new StringBuilder();
             while (m.find()) result.append(m.group());
-            return regexChapter(result.toString(), regex, ++index, nameRule, linkRule, chapterBeans);
+            return regexChapter(result.toString(), regex, ++index, analyzer);
         }
     }
+    // endregion
 }

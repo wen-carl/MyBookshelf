@@ -8,7 +8,7 @@ import androidx.annotation.Keep;
 import com.google.gson.Gson;
 import com.kunfei.bookshelf.base.BaseModelImpl;
 import com.kunfei.bookshelf.bean.BaseBookBean;
-import com.kunfei.bookshelf.utils.NetworkUtil;
+import com.kunfei.bookshelf.utils.NetworkUtils;
 import com.kunfei.bookshelf.utils.StringUtils;
 
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ import static com.kunfei.bookshelf.constant.AppConstant.EXP_PATTERN;
 import static com.kunfei.bookshelf.constant.AppConstant.JS_PATTERN;
 import static com.kunfei.bookshelf.constant.AppConstant.MAP_STRING;
 import static com.kunfei.bookshelf.constant.AppConstant.SCRIPT_ENGINE;
-import static com.kunfei.bookshelf.utils.NetworkUtil.headerPattern;
+import static com.kunfei.bookshelf.utils.NetworkUtils.headerPattern;
 
 
 /**
@@ -36,8 +36,8 @@ import static com.kunfei.bookshelf.utils.NetworkUtil.headerPattern;
 @Keep
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class AnalyzeRule {
-    private static final Pattern putPattern = Pattern.compile("@put:(\\{.+?\\})", Pattern.CASE_INSENSITIVE);
-    private static final Pattern getPattern = Pattern.compile("@get:\\{(.+?)\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern putPattern = Pattern.compile("@put:(\\{[^}]+?\\})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern getPattern = Pattern.compile("@get:\\{([^}]+?)\\}", Pattern.CASE_INSENSITIVE);
 
     private BaseBookBean book;
     private Object object;
@@ -73,6 +73,10 @@ public class AnalyzeRule {
         objectChangedJS = true;
         objectChangedJP = true;
         return this;
+    }
+
+    public String getBaseUrl(){
+        return this.baseUrl;
     }
 
     /**
@@ -171,7 +175,7 @@ public class AnalyzeRule {
         if (isUrl && !TextUtils.isEmpty(baseUrl)) {
             List<String> urlList = new ArrayList<>();
             for (Object url : (List<Object>) result) {
-                String absoluteURL = NetworkUtil.getAbsoluteURL(baseUrl, String.valueOf(url));
+                String absoluteURL = NetworkUtils.getAbsoluteURL(baseUrl, String.valueOf(url));
                 if (!urlList.contains(absoluteURL)) {
                     urlList.add(absoluteURL);
                 }
@@ -222,10 +226,37 @@ public class AnalyzeRule {
                 }
             }
         }
+        if (result == null) return "";
         if (isUrl && !StringUtils.isTrimEmpty(baseUrl)) {
-            return NetworkUtil.getAbsoluteURL(baseUrl, (String) result);
+            return NetworkUtils.getAbsoluteURL(baseUrl, String.valueOf(result));
         }
-        return StringUtils.formatHtml((String) result);
+        return String.valueOf(result);
+    }
+
+    /**
+     * 获取Element
+     */
+    public Object getElement(String ruleStr) throws Exception {
+        if (TextUtils.isEmpty(ruleStr)) return null;
+        Object result = null;
+        List<SourceRule> ruleList = splitSourceRule(ruleStr);
+        for (SourceRule rule : ruleList) {
+            switch (rule.mode) {
+                case Js:
+                    if (result == null) result = object;
+                    result = evalJS(rule.rule, result);
+                    break;
+                case JSon:
+                    result = getAnalyzeByJSonPath(result).getObject(rule.rule);
+                    break;
+                case XPath:
+                    result = getAnalyzeByXPath(result).getElements(rule.rule);
+                    break;
+                default:
+                    result = getAnalyzeByJSoup(result).getElements(rule.rule);
+            }
+        }
+        return result;
     }
 
     /**

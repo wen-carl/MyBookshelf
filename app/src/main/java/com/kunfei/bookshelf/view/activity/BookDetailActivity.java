@@ -9,6 +9,7 @@ import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
@@ -16,6 +17,7 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 
 import com.bumptech.glide.Glide;
@@ -36,6 +38,7 @@ import com.kunfei.bookshelf.model.BookSourceManager;
 import com.kunfei.bookshelf.presenter.BookDetailPresenter;
 import com.kunfei.bookshelf.presenter.ReadBookPresenter;
 import com.kunfei.bookshelf.presenter.contract.BookDetailContract;
+import com.kunfei.bookshelf.utils.StringUtils;
 import com.kunfei.bookshelf.widget.CoverImageView;
 import com.kunfei.bookshelf.widget.modialog.ChangeSourceDialog;
 import com.kunfei.bookshelf.widget.modialog.MoDialogHUD;
@@ -108,6 +111,14 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
         mPresenter.initData(getIntent());
     }
 
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        String dataKey = String.valueOf(System.currentTimeMillis());
+        getIntent().putExtra("openFrom", FROM_BOOKSHELF);
+        getIntent().putExtra("data_key", dataKey);
+        BitIntentDataManager.getInstance().putData(dataKey, mPresenter.getBookShelf());
+    }
 
     @Override
     protected void bindView() {
@@ -127,7 +138,7 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             String origin = TextUtils.isEmpty(searchBookBean.getOrigin()) ? "未知" : searchBookBean.getOrigin();
             tvOrigin.setText(origin);
             tvChapter.setText(searchBookBean.getLastChapter());  // newest
-            tvIntro.setText(searchBookBean.getIntroduce());
+            tvIntro.setText(StringUtils.formatHtml(searchBookBean.getIntroduce()));
             tvShelf.setText(R.string.add_to_shelf);
             tvRead.setText(R.string.start_read);
             tvRead.setOnClickListener(v -> {
@@ -145,6 +156,11 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
         bookShelfBean = mPresenter.getBookShelf();
         BookInfoBean bookInfoBean;
         if (null != bookShelfBean) {
+            if (BookShelfBean.LOCAL_TAG.equals(bookShelfBean.getTag())) {
+                ivMenu.setVisibility(View.GONE);
+            } else {
+                ivMenu.setVisibility(View.VISIBLE);
+            }
             bookInfoBean = bookShelfBean.getBookInfoBean();
             tvName.setText(bookInfoBean.getName());
             author = bookInfoBean.getAuthor();
@@ -169,9 +185,7 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
                     mPresenter.addToBookShelf();
                 });
             }
-            if (bookInfoBean.getIntroduce() != null) {
-                tvIntro.setText(bookInfoBean.getIntroduce());
-            }
+            tvIntro.setText(StringUtils.formatHtml(bookInfoBean.getIntroduce()));
             if (tvIntro.getVisibility() != View.VISIBLE) {
                 tvIntro.setVisibility(View.VISIBLE);
             }
@@ -273,12 +287,12 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             Intent intent = new Intent(BookDetailActivity.this, ReadBookActivity.class);
             intent.putExtra("openFrom", ReadBookPresenter.OPEN_FROM_APP);
             String key = String.valueOf(System.currentTimeMillis());
-            intent.putExtra("data_key", key);
-            try {
-                BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf().clone());
-            } catch (CloneNotSupportedException e) {
-                BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf());
-            }
+            String bookKey = "book" + key;
+            intent.putExtra("bookKey", bookKey);
+            BitIntentDataManager.getInstance().putData(bookKey, mPresenter.getBookShelf().clone());
+            String chapterListKey = "chapterList" + key;
+            intent.putExtra("chapterListKey", chapterListKey);
+            BitIntentDataManager.getInstance().putData(chapterListKey, mPresenter.getChapterList());
             startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -296,31 +310,38 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
 
         ivMenu.setOnClickListener(view -> {
             PopupMenu popupMenu = new PopupMenu(this, view, Gravity.END);
-            popupMenu.getMenu().add(R.string.refresh);
+            if (!mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
+                popupMenu.getMenu().add(Menu.NONE, R.id.menu_refresh, Menu.NONE, R.string.refresh);
+            }
             if (mPresenter.getInBookShelf() && !mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
                 if (mPresenter.getBookShelf().getAllowUpdate()) {
-                    popupMenu.getMenu().add(R.string.disable_update);
+                    popupMenu.getMenu().add(Menu.NONE, R.id.menu_disable_update, Menu.NONE, R.string.disable_update);
                 } else {
-                    popupMenu.getMenu().add(R.string.allow_update);
+                    popupMenu.getMenu().add(Menu.NONE, R.id.menu_allow_update, Menu.NONE, R.string.allow_update);
                 }
             }
             if (!mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
-                popupMenu.getMenu().add(R.string.edit_book_source);
+                popupMenu.getMenu().add(Menu.NONE, R.id.menu_edit_book_source, Menu.NONE, R.string.edit_book_source);
             }
             popupMenu.setOnMenuItemClickListener(menuItem -> {
-                if (menuItem.getTitle().toString().equals(getString(R.string.refresh))) {
-                    refresh();
-                } else if (menuItem.getTitle().toString().equals(getString(R.string.allow_update))) {
-                    mPresenter.getBookShelf().setAllowUpdate(true);
-                    mPresenter.addToBookShelf();
-                } else if (menuItem.getTitle().toString().equals(getString(R.string.disable_update))) {
-                    mPresenter.getBookShelf().setAllowUpdate(false);
-                    mPresenter.addToBookShelf();
-                } else if (menuItem.getTitle().toString().equals(getString(R.string.edit_book_source))) {
-                    BookSourceBean sourceBean = BookSourceManager.getBookSourceByUrl(mPresenter.getBookShelf().getTag());
-                    if (sourceBean != null) {
-                        SourceEditActivity.startThis(this, sourceBean);
-                    }
+                switch (menuItem.getItemId()) {
+                    case R.id.menu_refresh:
+                        refresh();
+                        break;
+                    case R.id.menu_allow_update:
+                        mPresenter.getBookShelf().setAllowUpdate(true);
+                        mPresenter.addToBookShelf();
+                        break;
+                    case R.id.menu_disable_update:
+                        mPresenter.getBookShelf().setAllowUpdate(false);
+                        mPresenter.addToBookShelf();
+                        break;
+                    case R.id.menu_edit_book_source:
+                        BookSourceBean sourceBean = BookSourceManager.getBookSourceByUrl(mPresenter.getBookShelf().getTag());
+                        if (sourceBean != null) {
+                            SourceEditActivity.startThis(this, sourceBean);
+                        }
+                        break;
                 }
                 return true;
             });

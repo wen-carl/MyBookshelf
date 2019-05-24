@@ -1,71 +1,70 @@
 //Copyright (c) 2017. 章钦豪. All rights reserved.
 package com.kunfei.bookshelf.bean;
 
+import com.google.gson.Gson;
 import com.kunfei.bookshelf.help.BookshelfHelp;
-import com.kunfei.bookshelf.utils.StringUtils;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
 import org.greenrobot.greendao.annotation.Id;
 
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 /**
  * 章节列表
  */
 @Entity
-public class ChapterListBean implements Cloneable, BaseChapterBean {
-
+public class BookChapterBean implements Cloneable, BaseChapterBean {
+    private String tag;
     private String noteUrl; //对应BookInfoBean noteUrl;
 
     private int durChapterIndex;  //当前章节数
     @Id
     private String durChapterUrl;  //当前章节对应的文章地址
     private String durChapterName;  //当前章节名称
-    private String tag;
+
     //章节内容在文章中的起始位置(本地)
     private Long start;
     //章节内容在文章中的终止位置(本地)
     private Long end;
 
-    @Generated(hash = 1504053071)
-    public ChapterListBean(String noteUrl, int durChapterIndex, String durChapterUrl, String durChapterName, String tag,
+    public BookChapterBean() {
+    }
+
+    @Generated(hash = 304828234)
+    public BookChapterBean(String tag, String noteUrl, int durChapterIndex, String durChapterUrl, String durChapterName,
                            Long start, Long end) {
+        this.tag = tag;
         this.noteUrl = noteUrl;
         this.durChapterIndex = durChapterIndex;
         this.durChapterUrl = durChapterUrl;
         this.durChapterName = durChapterName;
-        this.tag = tag;
         this.start = start;
         this.end = end;
     }
 
-    public ChapterListBean(String tag, String durChapterName, String durChapterUrl) {
+    public BookChapterBean(String tag, String durChapterName, String durChapterUrl) {
         this.tag = tag;
         this.durChapterName = durChapterName;
         this.durChapterUrl = durChapterUrl;
     }
 
-    @Generated(hash = 1096893365)
-    public ChapterListBean() {
-    }
-
     @Override
-    protected Object clone() throws CloneNotSupportedException {
-        ChapterListBean chapterListBean = (ChapterListBean) super.clone();
-        chapterListBean.noteUrl = noteUrl;
-        chapterListBean.durChapterUrl = durChapterUrl;
-        chapterListBean.durChapterName = durChapterName;
-        chapterListBean.tag = tag;
-        return chapterListBean;
+    protected Object clone() {
+        try {
+            Gson gson = new Gson();
+            String json = gson.toJson(this);
+            return gson.fromJson(json, BookChapterBean.class);
+        } catch (Exception ignored) {
+        }
+        return this;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ChapterListBean) {
-            ChapterListBean chapterListBean = (ChapterListBean) obj;
-            return Objects.equals(chapterListBean.durChapterUrl, durChapterUrl);
+        if (obj instanceof BookChapterBean) {
+            BookChapterBean bookChapterBean = (BookChapterBean) obj;
+            return Objects.equals(bookChapterBean.durChapterUrl, durChapterUrl);
         } else {
             return false;
         }
@@ -95,24 +94,6 @@ public class ChapterListBean implements Cloneable, BaseChapterBean {
 
     public void setDurChapterName(String durChapterName) {
         this.durChapterName = durChapterName;
-    }
-
-    public String getPureChapterName() {
-        return durChapterName == null ? ""
-                : StringUtils.fullToHalf(durChapterName).replaceAll("\\s", "")
-                .replaceAll("^第.*?章|[(\\[][^()\\[\\]]{2,}[)\\]]$", "")
-                .replaceAll("[^\\w\\u4E00-\\u9FEF〇\\u3400-\\u4DBF\\u20000-\\u2A6DF\\u2A700-\\u2EBEF]", "");
-        // 所有非字母数字中日韩文字 CJK区+扩展A-F区
-    }
-
-    public int getChapterNum() {
-        if (durChapterName != null) {
-            Matcher matcher = BookshelfHelp.chapterNamePattern.matcher(durChapterName);
-            if (matcher.find()) {
-                return StringUtils.stringToInt(matcher.group(2));
-            }
-        }
-        return -1;
     }
 
     @Override
@@ -159,7 +140,7 @@ public class ChapterListBean implements Cloneable, BaseChapterBean {
     }
 
     public Boolean getHasCache(BookInfoBean bookInfoBean) {
-        return BookshelfHelp.isChapterCached(bookInfoBean, this);
+        return BookshelfHelp.isChapterCached(bookInfoBean.getName(), tag, this, bookInfoBean.isAudio());
     }
 
 }

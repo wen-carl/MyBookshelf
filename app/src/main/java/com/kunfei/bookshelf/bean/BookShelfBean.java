@@ -12,7 +12,6 @@ import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Transient;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -54,7 +53,7 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
     private Map<String, String> variableMap;
 
     @Transient
-    private BookInfoBean bookInfoBean = new BookInfoBean();
+    private BookInfoBean bookInfoBean;
 
     public BookShelfBean() {
 
@@ -85,12 +84,14 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
     }
 
     @Override
-    public Object clone() throws CloneNotSupportedException {
-        BookShelfBean bookShelfBean = (BookShelfBean) super.clone();
-        bookShelfBean.noteUrl = noteUrl;
-        bookShelfBean.tag = tag;
-        bookShelfBean.bookInfoBean = (BookInfoBean) bookInfoBean.clone();
-        return bookShelfBean;
+    public Object clone() {
+        try {
+            Gson gson = new Gson();
+            String json = gson.toJson(this);
+            return gson.fromJson(json, BookShelfBean.class);
+        } catch (Exception ignored) {
+        }
+        return this;
     }
 
     @Override
@@ -120,30 +121,6 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
         return variableMap;
     }
 
-    public ChapterListBean getChapter(int index) {
-        if (realChapterListEmpty()) {
-            ChapterListBean chapterListBean = new ChapterListBean();
-            chapterListBean.setDurChapterName("暂无");
-            chapterListBean.setDurChapterUrl("暂无");
-            return chapterListBean;
-        } else if (0 <= index && index < getChapterList().size()) {
-            return getChapterList().get(index);
-        } else {
-            durChapter = getChapterList().size() - 1;
-            return getChapterList().get(durChapter);
-        }
-    }
-
-    public BookmarkBean getBookmark(int index) {
-        if (realBookmarkListEmpty() || index < 0) {
-            return null;
-        } else if (index < getBookmarkList().size()) {
-            return getBookmarkList().get(index);
-        } else {
-            return getBookmarkList().get(getChapterList().size() - 1);
-        }
-    }
-
     @Override
     public String getNoteUrl() {
         return noteUrl;
@@ -156,10 +133,6 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
 
     public int getDurChapter() {
         return durChapter < 0 ? 0 : durChapter;
-    }
-
-    public List<ChapterListBean> getChapterList() {
-        return bookInfoBean.getChapterList();
     }
 
     public int getDurChapterPage() {
@@ -180,6 +153,9 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
     }
 
     public BookInfoBean getBookInfoBean() {
+        if (bookInfoBean == null) {
+            bookInfoBean = new BookInfoBean();
+        }
         return bookInfoBean;
     }
 
@@ -188,7 +164,7 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
     }
 
     public boolean getHasUpdate() {
-        return hasUpdate;
+        return hasUpdate && !isAudio();
     }
 
     public int getNewChapters() {
@@ -263,12 +239,6 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
         this.durChapterName = durChapterName;
     }
 
-    public void upDurChapterName() {
-        if (getChapterList().size() > durChapter) {
-            durChapterName = getChapterList().get(durChapter).getDurChapterName();
-        }
-    }
-
     public String getLastChapterName() {
         return this.lastChapterName;
     }
@@ -277,22 +247,13 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
         this.lastChapterName = lastChapterName;
     }
 
-    public void upLastChapterName() {
-        if (getChapterList().size() > 0) {
-            lastChapterName = getChapterList().get(getChapterListSize() - 1).getDurChapterName();
-        }
-    }
-
     public int getUnreadChapterNum() {
         int num = getChapterListSize() - getDurChapter() - 1;
         return num < 0 ? 0 : num;
     }
 
     public int getChapterListSize() {
-        if (getChapterList().size() == 0) {
-            return this.chapterListSize == null ? 0 : this.chapterListSize;
-        }
-        return getChapterList().size();
+        return this.chapterListSize == null ? 0 : this.chapterListSize;
     }
 
     public void setChapterListSize(Integer chapterListSize) {
@@ -313,26 +274,6 @@ public class BookShelfBean implements Cloneable, BaseBookBean {
 
     public void setAllowUpdate(Boolean allowUpdate) {
         this.allowUpdate = allowUpdate;
-    }
-
-    public boolean realChapterListEmpty() {
-        return getChapterList().isEmpty();
-    }
-
-    public void setChapterList(List<ChapterListBean> chapterList) {
-        this.bookInfoBean.setChapterList(chapterList);
-    }
-
-    public boolean realBookmarkListEmpty() {
-        return getBookmarkList().isEmpty();
-    }
-
-    public List<BookmarkBean> getBookmarkList() {
-        return this.bookInfoBean.getBookmarkList();
-    }
-
-    public int getBookmarkListSize() {
-        return getBookmarkList().size();
     }
 
     public Boolean getUseReplaceRule() {
