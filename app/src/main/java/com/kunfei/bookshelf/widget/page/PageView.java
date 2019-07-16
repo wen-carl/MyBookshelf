@@ -59,7 +59,7 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
     //文字选择画笔
     private Paint mTextSelectPaint = null;
     //文字选择画笔颜色
-    private int TextSelectColor = Color.parseColor("#77fadb08");//todo,其实可以做成配置项，哈哈
+    private int TextSelectColor = Color.parseColor("#77fadb08");
 
     private Path mSelectTextPath = new Path();
 
@@ -133,7 +133,9 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
         if (mPageLoader != null) {
             mPageLoader.prepareDisplay(width, height);
         }
-
+        //设置中间区域范围
+        mCenterRect = new RectF(mViewWidth / 3f, mViewHeight / 3f,
+                mViewWidth * 2f / 3, mViewHeight * 2f / 3);
     }
 
     //设置翻页的模式
@@ -375,12 +377,10 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
                         }
                     }
                 } else {
-
                     if (c.getIndex() == lastSelectTxtChar.getIndex()) {
                         Ended = true;
                         if (!selectline.getCharsData().contains(c)) {
                             selectline.getCharsData().add(c);
-
                         }
                         break;
                     } else {
@@ -489,6 +489,7 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                mPageAnim.initTouch(x, y);
                 if (event.getEdgeFlags() != 0 || event.getRawY() < ScreenUtils.dpToPx(5) || event.getRawY() > getDisplayMetrics().heightPixels - ScreenUtils.dpToPx(5)) {
                     actionFromEdge = true;
                     return true;
@@ -513,6 +514,7 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
 
                 break;
             case MotionEvent.ACTION_MOVE:
+                mPageAnim.initTouch(x, y);
                 // 判断是否大于最小滑动值。
                 int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
                 if (!isMove) {
@@ -527,15 +529,13 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
                     mPageAnim.onTouchEvent(event);
                 }
                 break;
+            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
+                mPageAnim.initTouch(x, y);
+                mPageAnim.setTouchInitFalse();
                 if (!isMove) {
                     if (readBookControl.isCanSelectText()) {
                         removeCallbacks(mLongPressRunnable);
-                    }
-                    //设置中间区域范围
-                    if (mCenterRect == null) {
-                        mCenterRect = new RectF(mViewWidth / 4f, mViewHeight / 4f,
-                                mViewWidth * 3f / 4, mViewHeight * 3f / 4);
                     }
 
                     //是否点击了中间
@@ -551,8 +551,6 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
                                     mSelectTextPath.reset();
                                     invalidate();
                                 }
-
-                                //mTouchListener.onTouchUp();
                             }
                             //清除移动选择状态
                         }
@@ -654,13 +652,6 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
         mPageLoader.pagingEnd(direction);
     }
 
-    @Override
-    public void clickCenter() {
-        if (mTouchListener != null) {
-            mTouchListener.center();
-        }
-    }
-
     /**
      * 获取 PageLoader
      */
@@ -710,6 +701,7 @@ public class PageView extends View implements PageAnimation.OnPageChangeListener
         void onTouchClearCursor();
 
         void onLongPress();
+
         void center();
     }
 }
