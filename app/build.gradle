@@ -11,7 +11,7 @@ static def releaseTime() {
 
 def name = "YueDu"
 def version = "2." + releaseTime()
-def gitCommits = Integer.parseInt('git rev-list --count HEAD'.execute([], project.rootDir).text.trim())
+def gitCommits = Integer.parseInt('git rev-list --count HEAD'.execute().text.trim())
 
 android {
     compileSdkVersion 28
@@ -40,7 +40,7 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.myConfig
+            //signingConfig signingConfigs.myConfig
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
