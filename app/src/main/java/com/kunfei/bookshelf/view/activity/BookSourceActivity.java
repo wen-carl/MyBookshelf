@@ -301,6 +301,9 @@ public class BookSourceActivity extends MBaseActivity<BookSourceContract.Present
             case R.id.action_check_book_source:
                 mPresenter.checkBookSource(adapter.getSelectDataList());
                 break;
+            case R.id.action_check_find_source:
+                mPresenter.checkFindSource(adapter.getSelectDataList());
+                break;
             case R.id.sort_manual:
                 upSourceSort(0);
                 break;
@@ -448,8 +451,22 @@ public class BookSourceActivity extends MBaseActivity<BookSourceContract.Present
                 case REQUEST_QR:
                     if (data != null) {
                         String result = data.getStringExtra("result");
+                        if (!StringUtils.isTrimEmpty(result)) {
+
+                        if(result.replaceAll("\\s","").matches("^\\{.*\\}$")) {
+                            mPresenter.importBookSource(result);
+                            break;
+                        }
+                            result=result.trim();
+                        String[] string=result.split("#",2);
+                        if(string.length==2){
+                            if(string[1].replaceAll("\\s","").matches("^\\{.*\\}$")) {
+                                mPresenter.importBookSource(string[1]);
+                                break;
+                            }
+                        }
                         mPresenter.importBookSource(result);
-                    }
+                    }}
                     break;
             }
         }
