@@ -13,12 +13,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -31,8 +31,6 @@ import androidx.core.content.FileProvider;
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.hwangjr.rxbus.RxBus;
@@ -55,7 +53,6 @@ import com.kunfei.bookshelf.model.BookSourceManager;
 import com.kunfei.bookshelf.presenter.BookDetailPresenter;
 import com.kunfei.bookshelf.presenter.ReadBookPresenter;
 import com.kunfei.bookshelf.presenter.contract.BookDetailContract;
-import com.kunfei.bookshelf.utils.BitmapUtil;
 import com.kunfei.bookshelf.utils.RxUtils;
 import com.kunfei.bookshelf.utils.StringUtils;
 import com.kunfei.bookshelf.widget.image.CoverImageView;
@@ -76,6 +73,8 @@ import static com.kunfei.bookshelf.presenter.BookDetailPresenter.FROM_BOOKSHELF;
 public class BookDetailActivity extends MBaseActivity<BookDetailContract.Presenter> implements BookDetailContract.View {
     @BindView(R.id.ifl_content)
     View vwContent;
+    @BindView(R.id.book_info_main)
+    View bookInfoMain;
     @BindView(R.id.iv_menu)
     ImageView ivMenu;
     @BindView(R.id.iv_blur_cover)
@@ -98,14 +97,6 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
     TextView tvShelf;
     @BindView(R.id.tv_read)
     TextView tvRead;
-    @BindView(R.id.tv_share)
-    TextView tvShare;
-    @BindView(R.id.tv_book_url)
-    TextView tvBookUrl;
-    @BindView(R.id.book_info_main)
-    View bookInfoMain;
-    @BindView(R.id.book_info_btns)
-    View bookInfoBtns;
     @BindView(R.id.tv_loading)
     TextView tvLoading;
     @BindView(R.id.tv_change_origin)
@@ -166,9 +157,7 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             tvName.setText(searchBookBean.getName());
             author = searchBookBean.getAuthor();
             tvAuthor.setText(TextUtils.isEmpty(author) ? "未知" : author);
-            bookUrl=searchBookBean.getNoteUrl();
-            tvBookUrl.setText(bookUrl);
-//            bookInfoBtns.bringToFront();
+            bookUrl = searchBookBean.getNoteUrl();
             String origin = TextUtils.isEmpty(searchBookBean.getOrigin()) ? "未知" : searchBookBean.getOrigin();
             tvOrigin.setText(origin);
             tvChapter.setText(searchBookBean.getLastChapter());  // newest
@@ -199,8 +188,7 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             tvName.setText(bookInfoBean.getName());
             author = bookInfoBean.getAuthor();
             tvAuthor.setText(TextUtils.isEmpty(author) ? "未知" : author);
-            bookUrl=bookInfoBean.getNoteUrl();
-            tvBookUrl.setText(bookUrl);
+            bookUrl = bookInfoBean.getNoteUrl();
             ((RadioButton) rgBookGroup.getChildAt(bookShelfBean.getGroup())).setChecked(true);
             if (mPresenter.getInBookShelf()) {
                 tvChapter.setText(bookShelfBean.getDurChapterName()); // last
@@ -343,85 +331,6 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             }
         });
 
-
-        tvShare.setOnClickListener(v -> {
-
-            Single.create((SingleOnSubscribe<Bitmap>) emitter -> {
-                // 使用url
-                String url="";
-                BookSourceBean sourceBean = BookSourceManager.getBookSourceByUrl(mPresenter.getBookShelf().getTag());
-                if (sourceBean != null) {
-                    Gson gson = new GsonBuilder()
-                            .disableHtmlEscaping()
-                            .setPrettyPrinting()
-                            .create();
-                    url=tvBookUrl.getText().toString()+"#"+ gson.toJson(sourceBean).trim();
-                    QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
-                    Bitmap bitmap = QRCodeEncoder.syncEncodeQRCode(url, 800);
-                    QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-                    emitter.onSuccess(bitmap);
-                }else{
-                    url=tvBookUrl.getText().toString();
-                    QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
-                    Bitmap bitmap = QRCodeEncoder.syncEncodeQRCode(url, 300);
-                    QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-                    emitter.onSuccess(bitmap);
-                }
-            }).compose(RxUtils::toSimpleSingle)
-                    .subscribe(new MySingleObserver<Bitmap>() {
-
-                        @Override
-                        public void onSuccess(Bitmap bitmap2) {
-                            bookInfoBtns.setVisibility(View.GONE);
-                            LinearLayout.LayoutParams layoutParams=
-                                    new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                            tvIntro.setLayoutParams(layoutParams);
-//                            updateView();
-
-                            bookInfoMain.measure(
-                                    View.MeasureSpec.makeMeasureSpec(960, View.MeasureSpec.AT_MOST),
-                                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-                            bookInfoMain.layout(0, 0, bookInfoMain.getMeasuredWidth(), bookInfoMain.getMeasuredHeight());
-                            bookInfoMain.buildDrawingCache();
-                            Bitmap bitmap = bookInfoMain.getDrawingCache();
-                            bookInfoBtns.setVisibility(View.VISIBLE);
-                            layoutParams=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 160);
-                            tvIntro.setLayoutParams(layoutParams);
-                            //假如图片不符合要求，可以使用Bitmap.createBitmap( )方法处理图片
-
-//            BitmapUtil.localshare(this.getApplication(),bitmap,tvName.getText().toString());
-                            if (bitmap == null) {
-                                toast("生成照片失败");
-                                return;
-                            }
-
-                            if(bitmap2 !=null)
-                                bitmap=BitmapUtil.addBitmap(bitmap,bitmap2,20,0,0,60);
-
-                            try {
-                                File file = new File(BookDetailActivity.this.getExternalCacheDir(), tvName.getText().toString()+".png");
-                                FileOutputStream fOut = new FileOutputStream(file);
-                                bitmap.compress(Bitmap.CompressFormat.PNG, 80, fOut);
-                                fOut.flush();
-                                fOut.close();
-                                //noinspection ResultOfMethodCallIgnored
-                                file.setReadable(true, false);
-                                Uri contentUri = FileProvider.getUriForFile(BookDetailActivity.this, BuildConfig.APPLICATION_ID + ".fileProvider", file);
-                                final Intent intent = new Intent(Intent.ACTION_SEND);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                intent.putExtra(Intent.EXTRA_STREAM, contentUri);
-                                intent.setType("image/png");
-                                startActivity(Intent.createChooser(intent, "分享书籍"));
-                            } catch (Exception e) {
-                                toast(e.getLocalizedMessage());
-                            }
-                        }
-                    });
-
-
-
-        });
-
         ivMenu.setOnClickListener(view -> {
             PopupMenu popupMenu = new PopupMenu(this, view, Gravity.END);
             if (!mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
@@ -440,6 +349,7 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
             if (!mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
                 popupMenu.getMenu().add(Menu.NONE, R.id.menu_copy_url, Menu.NONE, R.string.copy_url);
             }
+            popupMenu.getMenu().add(Menu.NONE, R.id.menu_share, Menu.NONE, R.string.share_book);
             popupMenu.setOnMenuItemClickListener(menuItem -> {
                 switch (menuItem.getItemId()) {
                     case R.id.menu_refresh:
@@ -466,6 +376,9 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
                             clipboard.setPrimaryClip(clipData);
                             toast(R.string.copy_complete);
                         }
+                        break;
+                    case R.id.menu_share:
+                        share();
                         break;
                 }
                 return true;
@@ -539,5 +452,59 @@ public class BookDetailActivity extends MBaseActivity<BookDetailContract.Present
     public void onDestroy() {
         moDialogHUD.dismiss();
         super.onDestroy();
+    }
+
+    private void share() {
+
+        Single.create((SingleOnSubscribe<Bitmap>) emitter -> {
+            // 使用url
+            String url = mPresenter.getBookShelf().getNoteUrl();
+            if (url == null)
+                url = "";
+            int maxLength = 1273 - 1 - url.length();
+
+            BookSourceBean sourceBean = BookSourceManager.getBookSourceByUrl(mPresenter.getBookShelf().getTag());
+
+            if (sourceBean != null) {
+//                    url=tvBookUrl.getText().toString()+"#"+ gson.toJson(sourceBean).replaceAll("\n\\s*\"[a-zA-Z]+\"(:\"\"|: \"\"| :\"\"| : \"\")\\s*,\\s*\n","\n").trim();
+                url = url + "#" + sourceBean.getJson(maxLength);
+
+                Log.d("QRcode", "Length=" + url.length() + "\n" + url);
+                Bitmap bitmap;
+                QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
+                if (url.length() > 300)
+                    bitmap = QRCodeEncoder.syncEncodeQRCode(url, 800);
+                else if (url.length() > 100)
+                    bitmap = QRCodeEncoder.syncEncodeQRCode(url, 500);
+                else
+                    bitmap = QRCodeEncoder.syncEncodeQRCode(url, 300);
+                QRCodeEncoder.HINTS.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+                emitter.onSuccess(bitmap);
+            }
+        }).compose(RxUtils::toSimpleSingle)
+                .subscribe(new MySingleObserver<Bitmap>() {
+
+                    @Override
+                    public void onSuccess(Bitmap bitmap2) {
+
+                        try {
+                            File file = new File(BookDetailActivity.this.getExternalCacheDir(), tvName.getText().toString() + ".png");
+                            FileOutputStream fOut = new FileOutputStream(file);
+                            bitmap2.compress(Bitmap.CompressFormat.PNG, 80, fOut);
+                            fOut.flush();
+                            fOut.close();
+                            //noinspection ResultOfMethodCallIgnored
+                            file.setReadable(true, false);
+                            Uri contentUri = FileProvider.getUriForFile(BookDetailActivity.this, BuildConfig.APPLICATION_ID + ".fileProvider", file);
+                            final Intent intent = new Intent(Intent.ACTION_SEND);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            intent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                            intent.setType("image/png");
+                            startActivity(Intent.createChooser(intent, "分享书籍"));
+                        } catch (Exception e) {
+                            toast(e.getLocalizedMessage());
+                        }
+                    }
+                });
     }
 }
